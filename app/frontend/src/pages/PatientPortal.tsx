@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { CalendarDays, User, Phone, Mail, MapPin, ClipboardList, Clock } from 'lucide-react'
+import { CalendarDays, User, Phone, Mail, MapPin, ClipboardList, Clock, XCircle } from 'lucide-react'
 import { getPatients } from '../api/patients'
+import { cancelAppointment } from '../api/appointments'
 import client from '../api/client'
 import type { Patient, Appointment } from '../types'
 
@@ -34,6 +35,15 @@ export default function PatientPortal() {
     const { data } = await client.get<Appointment[]>(`/appointments/?patient_id=${id}`)
     setAppointments(data.sort((a, b) => new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime()))
     setLoading(false)
+  }
+
+  const handleCancel = async (id: number) => {
+    if (!window.confirm('Cancel this appointment?')) return
+    await cancelAppointment(id)
+    if (selected) {
+      const { data } = await client.get<Appointment[]>(`/appointments/?patient_id=${selected.id}`)
+      setAppointments(data.sort((a, b) => new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime()))
+    }
   }
 
   const upcoming = appointments.filter((a) => a.status === 'scheduled' && new Date(a.appointment_date) >= new Date())
@@ -123,7 +133,7 @@ export default function PatientPortal() {
                 ) : (
                   <div className="space-y-3">
                     {upcoming.map((a) => (
-                      <AppointmentCard key={a.id} appointment={a} />
+                      <AppointmentCard key={a.id} appointment={a} onCancel={() => handleCancel(a.id)} />
                     ))}
                   </div>
                 )}
@@ -150,7 +160,7 @@ export default function PatientPortal() {
   )
 }
 
-function AppointmentCard({ appointment: a }: { appointment: Appointment }) {
+function AppointmentCard({ appointment: a, onCancel }: { appointment: Appointment; onCancel?: () => void }) {
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-start justify-between gap-4">
       <div className="flex items-start gap-4">
@@ -166,9 +176,20 @@ function AppointmentCard({ appointment: a }: { appointment: Appointment }) {
           {a.notes && <p className="mt-2 text-sm text-slate-500 italic">"{a.notes}"</p>}
         </div>
       </div>
-      <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize shrink-0 ${STATUS_COLORS[a.status]}`}>
-        {a.status}
-      </span>
+      <div className="flex flex-col items-end gap-2 shrink-0">
+        <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${STATUS_COLORS[a.status]}`}>
+          {a.status}
+        </span>
+        {onCancel && a.status === 'scheduled' && (
+          <button
+            onClick={onCancel}
+            className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 transition-colors"
+          >
+            <XCircle size={13} />
+            Cancel
+          </button>
+        )}
+      </div>
     </div>
   )
 }

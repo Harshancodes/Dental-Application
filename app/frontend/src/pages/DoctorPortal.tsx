@@ -156,28 +156,51 @@ export default function DoctorPortal() {
               )}
             </section>
 
-            {/* Upcoming */}
-            {upcoming.length > 0 && (
-              <section>
-                <div className="flex items-center gap-2 mb-3">
-                  <Clock size={16} className="text-blue-500" />
-                  <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wider">
-                    Upcoming ({upcoming.length})
-                  </h3>
+            {/* Future Schedule */}
+            <section>
+              <div className="flex items-center gap-2 mb-3">
+                <Clock size={16} className="text-blue-500" />
+                <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wider">
+                  Future Schedule ({upcoming.length})
+                </h3>
+              </div>
+              {upcoming.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-slate-100 p-8 text-center text-slate-400">
+                  No upcoming appointments scheduled.
                 </div>
-                <div className="space-y-3">
-                  {upcoming.map((a) => (
-                    <AppointmentRow
-                      key={a.id}
-                      appointment={a}
-                      patientName={patientName(a.patient_id)}
-                      onComplete={() => markComplete(a.id)}
-                      onNotes={() => setNotesModal({ id: a.id, notes: a.notes ?? '' })}
-                    />
-                  ))}
+              ) : (
+                <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-slate-50 border-b border-slate-100">
+                      <tr className="text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                        <th className="px-5 py-3">Date</th>
+                        <th className="px-5 py-3">Time</th>
+                        <th className="px-5 py-3">Patient</th>
+                        <th className="px-5 py-3">Reason</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {upcoming
+                        .sort((a, b) => new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime())
+                        .map((a) => (
+                          <tr key={a.id} className="hover:bg-slate-50 transition-colors">
+                            <td className="px-5 py-3 text-sm font-medium text-slate-700">
+                              {new Date(a.appointment_date).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
+                            </td>
+                            <td className="px-5 py-3 text-sm text-slate-500">
+                              {new Date(a.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </td>
+                            <td className="px-5 py-3 text-sm font-medium text-slate-800">
+                              {patientName(a.patient_id)}
+                            </td>
+                            <td className="px-5 py-3 text-sm text-slate-500">{a.reason ?? '—'}</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
                 </div>
-              </section>
-            )}
+              )}
+            </section>
 
             {/* Past */}
             {past.length > 0 && (
