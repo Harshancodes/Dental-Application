@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 from database import get_db
 from models import Appointment, Patient, Doctor
@@ -25,8 +25,19 @@ def create_appointment(appointment: AppointmentCreate, db: Session = Depends(get
 
 
 @router.get("/", response_model=List[AppointmentResponse])
-def get_appointments(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return db.query(Appointment).offset(skip).limit(limit).all()
+def get_appointments(
+    skip: int = 0,
+    limit: int = 100,
+    patient_id: Optional[int] = Query(None),
+    doctor_id: Optional[int] = Query(None),
+    db: Session = Depends(get_db),
+):
+    query = db.query(Appointment)
+    if patient_id:
+        query = query.filter(Appointment.patient_id == patient_id)
+    if doctor_id:
+        query = query.filter(Appointment.doctor_id == doctor_id)
+    return query.offset(skip).limit(limit).all()
 
 
 @router.get("/{appointment_id}", response_model=AppointmentResponse)

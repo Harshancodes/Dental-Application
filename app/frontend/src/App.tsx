@@ -4,6 +4,8 @@ import Dashboard from './pages/Dashboard'
 import Patients from './pages/Patients'
 import Doctors from './pages/Doctors'
 import Appointments from './pages/Appointments'
+import PatientPortal from './pages/PatientPortal'
+import DoctorPortal from './pages/DoctorPortal'
 
 export default function App() {
   return (
@@ -15,6 +17,8 @@ export default function App() {
           <Route path="patients" element={<Patients />} />
           <Route path="doctors" element={<Doctors />} />
           <Route path="appointments" element={<Appointments />} />
+          <Route path="patient-portal" element={<PatientPortal />} />
+          <Route path="doctor-portal" element={<DoctorPortal />} />
         </Route>
       </Routes>
     </BrowserRouter>

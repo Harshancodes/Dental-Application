@@ -1,12 +1,17 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Users, Stethoscope, CalendarDays } from 'lucide-react'
+import { LayoutDashboard, Users, Stethoscope, CalendarDays, User, UserCog } from 'lucide-react'
 import clsx from 'clsx'
 
-const nav = [
+const adminNav = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/patients', icon: Users, label: 'Patients' },
   { to: '/doctors', icon: Stethoscope, label: 'Doctors' },
   { to: '/appointments', icon: CalendarDays, label: 'Appointments' },
+]
+
+const portalNav = [
+  { to: '/patient-portal', icon: User, label: 'Patient Portal' },
+  { to: '/doctor-portal', icon: UserCog, label: 'Doctor Portal' },
 ]
 
 export default function Sidebar() {
@@ -24,24 +29,54 @@ export default function Sidebar() {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
-        {nav.map(({ to, icon: Icon, label }) => (
-          <NavLink
-            key={to}
-            to={to}
-            className={({ isActive }) =>
-              clsx(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                isActive
-                  ? 'bg-blue-600 text-white'
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-              )
-            }
-          >
-            <Icon size={18} />
-            {label}
-          </NavLink>
-        ))}
+      <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto">
+        {/* Admin */}
+        <div>
+          <p className="px-3 mb-1.5 text-xs font-semibold text-slate-500 uppercase tracking-widest">Admin</p>
+          <div className="space-y-1">
+            {adminNav.map(({ to, icon: Icon, label }) => (
+              <NavLink
+                key={to}
+                to={to}
+                className={({ isActive }) =>
+                  clsx(
+                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                    isActive
+                      ? 'bg-blue-600 text-white'
+                      : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                  )
+                }
+              >
+                <Icon size={18} />
+                {label}
+              </NavLink>
+            ))}
+          </div>
+        </div>
+
+        {/* Portals */}
+        <div>
+          <p className="px-3 mb-1.5 text-xs font-semibold text-slate-500 uppercase tracking-widest">Portals</p>
+          <div className="space-y-1">
+            {portalNav.map(({ to, icon: Icon, label }) => (
+              <NavLink
+                key={to}
+                to={to}
+                className={({ isActive }) =>
+                  clsx(
+                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                    isActive
+                      ? 'bg-blue-600 text-white'
+                      : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                  )
+                }
+              >
+                <Icon size={18} />
+                {label}
+              </NavLink>
+            ))}
+          </div>
+        </div>
       </nav>
 
       {/* Footer */}
