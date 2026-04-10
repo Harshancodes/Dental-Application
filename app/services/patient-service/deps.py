@@ -1,3 +1,4 @@
+import os
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
@@ -6,7 +7,6 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from database import get_db
 from models import User
-import os
 
 SECRET_KEY = os.getenv("SECRET_KEY", "dental-clinic-dev-secret-key-change-in-production")
 ALGORITHM = "HS256"

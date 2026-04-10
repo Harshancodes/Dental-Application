@@ -1,10 +1,11 @@
-from fastapi import FastAPI
+import os
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from database import engine
-from models import Base
-from routers import patients, doctors, appointments, treatments, billing, auth, seed
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from routers import patients, doctors, appointments, treatments, billing, auth
 
-Base.metadata.create_all(bind=engine)
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 
 app = FastAPI(
     title="Dental Clinic API",
@@ -20,15 +21,36 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ── Error handlers ────────────────────────────────────────────────────────────
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Return clean, readable validation errors instead of raw Pydantic output."""
+    errors = []
+    for error in exc.errors():
+        field = " → ".join(str(e) for e in error["loc"] if e != "body")
+        errors.append({"field": field, "message": error["msg"]})
+    return JSONResponse(
+        status_code=422,
+        content={"detail": "Validation failed", "errors": errors},
+    )
+
+
+# ── Routers ───────────────────────────────────────────────────────────────────
+
 app.include_router(auth.router)
 app.include_router(patients.router)
 app.include_router(doctors.router)
 app.include_router(appointments.router)
 app.include_router(treatments.router)
 app.include_router(billing.router)
-app.include_router(seed.router)
+
+# Seed endpoint only available in development
+if ENVIRONMENT == "development":
+    from routers import seed
+    app.include_router(seed.router)
 
 
 @app.get("/", tags=["Health"])
 def root():
-    return {"status": "ok", "message": "Dental Clinic API v2"}
+    return {"status": "ok", "message": "Dental Clinic API v2", "environment": ENVIRONMENT}
