@@ -29,5 +29,13 @@ services:
     environment:
       DATABASE_URL: postgresql://admin:admin@db:5432/patients
 
+  frontend:
+    build: ./frontend
+    container_name: dental-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - patient-service
+
 volumes:
   postgres_data:

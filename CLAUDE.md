@@ -14,6 +14,7 @@ The user is learning alongside development — always explain key decisions brie
 | Service | Port | Description |
 |---------|------|-------------|
 | patient-service | 8000 | Patients, Doctors, Appointments, Treatments, Billing |
+| frontend | 3000 | React + Vite + Tailwind CSS UI (served via nginx in Docker) |
 
 ## Project Structure
 ```
@@ -28,6 +29,15 @@ app/
       routers/         # One file per resource
       requirements.txt
       Dockerfile
+  frontend/
+    src/
+      api/             # Axios API clients (patients, doctors, appointments)
+      types/           # TypeScript interfaces
+      components/      # Layout, Sidebar, Modal
+      pages/           # Dashboard, Patients, Doctors, Appointments
+    vite.config.ts     # Dev proxy: /api -> localhost:8000
+    nginx.conf         # Prod proxy: /api -> patient-service:8000
+    Dockerfile         # Multi-stage: node build -> nginx serve
 ```
 
 ## Conventions
