@@ -17,8 +17,10 @@ export default function Login() {
     setError('')
     setLoading(true)
     try {
-      await login(username, password)
-      navigate('/dashboard')
+      const user = await login(username, password)
+      if (user.role === 'doctor') navigate('/doctor-portal')
+      else if (user.role === 'patient') navigate('/patient-portal')
+      else navigate('/dashboard')
     } catch {
       setError('Invalid username or password.')
     } finally {
@@ -63,12 +65,27 @@ export default function Login() {
             <p className="text-slate-500 mt-1 text-sm">Enter your credentials to continue.</p>
           </div>
 
-          {/* Default credentials hint */}
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm">
-            <p className="font-medium text-blue-800 mb-1">Default credentials</p>
-            <p className="text-blue-600">Username: <span className="font-mono font-semibold">admin</span></p>
-            <p className="text-blue-600">Password: <span className="font-mono font-semibold">admin123</span></p>
-            <p className="text-blue-500 text-xs mt-1">(Run POST /dev/seed first if you haven't)</p>
+          {/* Demo credentials */}
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm space-y-2">
+            <p className="font-semibold text-slate-700 text-xs uppercase tracking-wide">Demo Accounts</p>
+            {[
+              { role: 'Admin', user: 'admin', pass: 'admin123', color: 'text-blue-600' },
+              { role: 'Doctor', user: 'dr.parker', pass: 'doctor123', color: 'text-purple-600' },
+              { role: 'Patient', user: 'john.doe', pass: 'patient123', color: 'text-emerald-600' },
+            ].map(({ role, user, pass, color }) => (
+              <div key={role} className="flex items-center justify-between">
+                <span className={`text-xs font-semibold ${color}`}>{role}</span>
+                <span className="text-slate-500 text-xs font-mono">{user} / {pass}</span>
+                <button
+                  type="button"
+                  onClick={() => { setUsername(user); setPassword(pass) }}
+                  className="text-xs text-blue-500 hover:text-blue-700 underline"
+                >
+                  Use
+                </button>
+              </div>
+            ))}
+            <p className="text-slate-400 text-xs pt-1">(Run POST /dev/seed first if needed)</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">

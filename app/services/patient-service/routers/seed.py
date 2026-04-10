@@ -24,6 +24,7 @@ def seed_database(db: Session = Depends(get_db)):
     db.add(admin)
     db.flush()
 
+
     # ── Patients ──────────────────────────────────────────────────────────────
     patients = [
         Patient(name="John Doe", date_of_birth=date(1989, 3, 15), phone="+1 555 0101", email="john.doe@email.com", address="123 Oak St, Springfield", medical_history="Mild gum sensitivity. No known drug allergies."),
@@ -81,6 +82,25 @@ def seed_database(db: Session = Depends(get_db)):
         Invoice(patient_id=patients[4].id, appointment_id=appointments[3].id, total_amount=120.0, status="paid", due_date=date(2026, 4, 5), paid_at=now - timedelta(days=8)),
     ]
     db.add_all(invoices)
+    db.flush()
+
+    # ── Doctor user accounts ──────────────────────────────────────────────────
+    doctor_users = [
+        User(username="dr.parker", full_name="Alice Parker", hashed_password=hash_password("doctor123"), role="doctor", doctor_id=doctors[0].id),
+        User(username="dr.wilson", full_name="James Wilson", hashed_password=hash_password("doctor123"), role="doctor", doctor_id=doctors[1].id),
+        User(username="dr.santos", full_name="Maria Santos", hashed_password=hash_password("doctor123"), role="doctor", doctor_id=doctors[2].id),
+    ]
+    db.add_all(doctor_users)
+
+    # ── Patient user accounts ─────────────────────────────────────────────────
+    patient_users = [
+        User(username="john.doe",    full_name="John Doe",      hashed_password=hash_password("patient123"), role="patient", patient_id=patients[0].id),
+        User(username="sarah.j",     full_name="Sarah Johnson", hashed_password=hash_password("patient123"), role="patient", patient_id=patients[1].id),
+        User(username="m.chen",      full_name="Michael Chen",  hashed_password=hash_password("patient123"), role="patient", patient_id=patients[2].id),
+        User(username="emma.w",      full_name="Emma Williams", hashed_password=hash_password("patient123"), role="patient", patient_id=patients[3].id),
+        User(username="r.brown",     full_name="Robert Brown",  hashed_password=hash_password("patient123"), role="patient", patient_id=patients[4].id),
+    ]
+    db.add_all(patient_users)
     db.commit()
 
     return {

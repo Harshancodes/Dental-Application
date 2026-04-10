@@ -56,4 +56,6 @@ export interface AuthUser {
   username: string
   role: string
   full_name: string | null
+  doctor_id: number | null
+  patient_id: number | null
 }

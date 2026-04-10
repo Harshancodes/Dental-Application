@@ -40,6 +40,8 @@ def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get
         "role": user.role,
         "id": user.id,
         "full_name": user.full_name,
+        "doctor_id": user.doctor_id,
+        "patient_id": user.patient_id,
     })
     return {"access_token": token, "token_type": "bearer"}
 

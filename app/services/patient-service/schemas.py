@@ -167,6 +167,8 @@ class UserCreate(BaseModel):
     full_name: Optional[str] = None
     password: str
     role: str = "admin"
+    doctor_id: Optional[int] = None
+    patient_id: Optional[int] = None
 
 
 class UserResponse(BaseModel):
@@ -175,6 +177,8 @@ class UserResponse(BaseModel):
     email: Optional[str]
     full_name: Optional[str]
     role: str
+    doctor_id: Optional[int]
+    patient_id: Optional[int]
     created_at: Optional[datetime]
 
     class Config:

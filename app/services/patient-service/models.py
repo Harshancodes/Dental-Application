@@ -96,4 +96,6 @@ class User(Base):
     full_name = Column(String(100), nullable=True)
     hashed_password = Column(String(255), nullable=False)
     role = Column(String(20), default="admin")             # admin, doctor, patient
+    doctor_id = Column(Integer, ForeignKey("doctors.id"), nullable=True)
+    patient_id = Column(Integer, ForeignKey("patients.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

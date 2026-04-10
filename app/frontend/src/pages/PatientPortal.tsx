@@ -3,6 +3,7 @@ import { CalendarDays, User, Phone, Mail, MapPin, ClipboardList, Clock, XCircle 
 import { getPatients } from '../api/patients'
 import { cancelAppointment } from '../api/appointments'
 import client from '../api/client'
+import { useAuth } from '../context/AuthContext'
 import type { Patient, Appointment } from '../types'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -18,13 +19,31 @@ const STATUS_ICONS: Record<string, string> = {
 }
 
 export default function PatientPortal() {
+  const { user } = useAuth()
+  const isPatientRole = user?.role === 'patient' && user?.patient_id != null
+
   const [patients, setPatients] = useState<Patient[]>([])
   const [selected, setSelected] = useState<Patient | null>(null)
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    getPatients().then(({ data }) => setPatients(data))
+    if (isPatientRole) {
+      // Auto-load this patient's data
+      setLoading(true)
+      Promise.all([
+        getPatients(),
+        client.get<Appointment[]>(`/appointments/?patient_id=${user!.patient_id}`),
+      ]).then(([allPatients, appts]) => {
+        const me = allPatients.data.find(p => p.id === user!.patient_id) ?? null
+        setPatients(allPatients.data)
+        setSelected(me)
+        setAppointments(appts.data.sort((a, b) => new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime()))
+        setLoading(false)
+      })
+    } else {
+      getPatients().then(({ data }) => setPatients(data))
+    }
   }, [])
 
   const handleSelect = async (id: string) => {
@@ -60,19 +79,21 @@ export default function PatientPortal() {
         <p className="text-slate-500">Select your name to view your appointments and records.</p>
       </div>
 
-      {/* Patient Selector */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-        <label className="block text-sm font-medium text-slate-600 mb-2">Select Patient</label>
-        <select
-          onChange={(e) => handleSelect(e.target.value)}
-          className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 bg-white"
-        >
-          <option value="">— Choose your name —</option>
-          {patients.map((p) => (
-            <option key={p.id} value={p.id}>{p.name}</option>
-          ))}
-        </select>
-      </div>
+      {/* Patient Selector — hidden when logged in as patient */}
+      {!isPatientRole && (
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+          <label className="block text-sm font-medium text-slate-600 mb-2">Select Patient</label>
+          <select
+            onChange={(e) => handleSelect(e.target.value)}
+            className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 bg-white"
+          >
+            <option value="">— Choose your name —</option>
+            {patients.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Patient Info Card */}
       {selected && (

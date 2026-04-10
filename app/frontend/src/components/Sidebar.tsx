@@ -34,47 +34,55 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto">
-        <div>
-          <p className="px-3 mb-1.5 text-xs font-semibold text-slate-500 uppercase tracking-widest">Admin</p>
-          <div className="space-y-1">
-            {adminNav.map(({ to, icon: Icon, label }) => (
-              <NavLink
-                key={to}
-                to={to}
-                className={({ isActive }) =>
-                  clsx(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                    isActive ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                  )
-                }
-              >
-                <Icon size={18} />
-                {label}
-              </NavLink>
-            ))}
-          </div>
-        </div>
+        {/* Admin sees everything */}
+        {user?.role === 'admin' && (
+          <>
+            <div>
+              <p className="px-3 mb-1.5 text-xs font-semibold text-slate-500 uppercase tracking-widest">Admin</p>
+              <div className="space-y-1">
+                {adminNav.map(({ to, icon: Icon, label }) => (
+                  <NavLink key={to} to={to} className={({ isActive }) => clsx('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors', isActive ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white')}>
+                    <Icon size={18} />{label}
+                  </NavLink>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="px-3 mb-1.5 text-xs font-semibold text-slate-500 uppercase tracking-widest">Portals</p>
+              <div className="space-y-1">
+                {portalNav.map(({ to, icon: Icon, label }) => (
+                  <NavLink key={to} to={to} className={({ isActive }) => clsx('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors', isActive ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white')}>
+                    <Icon size={18} />{label}
+                  </NavLink>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
 
-        <div>
-          <p className="px-3 mb-1.5 text-xs font-semibold text-slate-500 uppercase tracking-widest">Portals</p>
-          <div className="space-y-1">
-            {portalNav.map(({ to, icon: Icon, label }) => (
-              <NavLink
-                key={to}
-                to={to}
-                className={({ isActive }) =>
-                  clsx(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                    isActive ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                  )
-                }
-              >
-                <Icon size={18} />
-                {label}
+        {/* Doctor sees only their portal */}
+        {user?.role === 'doctor' && (
+          <div>
+            <p className="px-3 mb-1.5 text-xs font-semibold text-slate-500 uppercase tracking-widest">My Portal</p>
+            <div className="space-y-1">
+              <NavLink to="/doctor-portal" className={({ isActive }) => clsx('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors', isActive ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white')}>
+                <UserCog size={18} />My Schedule
               </NavLink>
-            ))}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Patient sees only their portal */}
+        {user?.role === 'patient' && (
+          <div>
+            <p className="px-3 mb-1.5 text-xs font-semibold text-slate-500 uppercase tracking-widest">My Portal</p>
+            <div className="space-y-1">
+              <NavLink to="/patient-portal" className={({ isActive }) => clsx('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors', isActive ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white')}>
+                <User size={18} />My Appointments
+              </NavLink>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Logged in user + logout */}

@@ -4,6 +4,7 @@ import { getDoctors } from '../api/doctors'
 import { getPatients } from '../api/patients'
 import { updateAppointment } from '../api/appointments'
 import client from '../api/client'
+import { useAuth } from '../context/AuthContext'
 import type { Doctor, Patient, Appointment } from '../types'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -13,6 +14,9 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 export default function DoctorPortal() {
+  const { user } = useAuth()
+  const isDoctorRole = user?.role === 'doctor' && user?.doctor_id != null
+
   const [doctors, setDoctors] = useState<Doctor[]>([])
   const [patients, setPatients] = useState<Patient[]>([])
   const [selected, setSelected] = useState<Doctor | null>(null)
@@ -21,8 +25,24 @@ export default function DoctorPortal() {
   const [notesModal, setNotesModal] = useState<{ id: number; notes: string } | null>(null)
 
   useEffect(() => {
-    getDoctors().then(({ data }) => setDoctors(data))
-    getPatients().then(({ data }) => setPatients(data))
+    if (isDoctorRole) {
+      setLoading(true)
+      Promise.all([
+        getDoctors(),
+        getPatients(),
+        client.get<Appointment[]>(`/appointments/?doctor_id=${user!.doctor_id}`),
+      ]).then(([allDoctors, allPatients, appts]) => {
+        const me = allDoctors.data.find(d => d.id === user!.doctor_id) ?? null
+        setDoctors(allDoctors.data)
+        setPatients(allPatients.data)
+        setSelected(me)
+        setAppointments(appts.data.sort((a, b) => new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime()))
+        setLoading(false)
+      })
+    } else {
+      getDoctors().then(({ data }) => setDoctors(data))
+      getPatients().then(({ data }) => setPatients(data))
+    }
   }, [])
 
   const handleSelect = async (id: string) => {
@@ -78,19 +98,21 @@ export default function DoctorPortal() {
         <p className="text-slate-500">View your schedule, manage appointments, and update patient notes.</p>
       </div>
 
-      {/* Doctor Selector */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-        <label className="block text-sm font-medium text-slate-600 mb-2">Select Doctor</label>
-        <select
-          onChange={(e) => handleSelect(e.target.value)}
-          className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 text-slate-800 bg-white"
-        >
-          <option value="">— Choose your name —</option>
-          {doctors.map((d) => (
-            <option key={d.id} value={d.id}>Dr. {d.name} — {d.specialization}</option>
-          ))}
-        </select>
-      </div>
+      {/* Doctor Selector — hidden when logged in as doctor */}
+      {!isDoctorRole && (
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+          <label className="block text-sm font-medium text-slate-600 mb-2">Select Doctor</label>
+          <select
+            onChange={(e) => handleSelect(e.target.value)}
+            className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 text-slate-800 bg-white"
+          >
+            <option value="">— Choose your name —</option>
+            {doctors.map((d) => (
+              <option key={d.id} value={d.id}>Dr. {d.name} — {d.specialization}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Doctor Info */}
       {selected && (
