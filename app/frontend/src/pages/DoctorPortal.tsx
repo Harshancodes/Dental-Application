@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { CheckCircle, Clock, Stethoscope, Calendar, User } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { CheckCircle, Clock, Stethoscope, Calendar, User, Bot, Send, Sparkles, X } from 'lucide-react'
 import { getDoctors } from '../api/doctors'
 import { getPatients } from '../api/patients'
 import { updateAppointment } from '../api/appointments'
@@ -12,6 +12,209 @@ const STATUS_COLORS: Record<string, string> = {
   completed: 'bg-green-100 text-green-700',
   cancelled: 'bg-red-100 text-red-700',
 }
+
+// ── AI Chat ────────────────────────────────────────────────────────────────────
+
+type ChatMessage = { role: 'user' | 'assistant'; content: string }
+
+function AiAssistant({ patients }: { patients: Patient[] }) {
+  const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null)
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [summaryLoading, setSummaryLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const bottomRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, loading])
+
+  const sendMessage = async () => {
+    if (!input.trim() || !selectedPatientId || loading) return
+    const question = input.trim()
+    setInput('')
+    setError(null)
+
+    const newHistory: ChatMessage[] = [...messages, { role: 'user', content: question }]
+    setMessages(newHistory)
+    setLoading(true)
+
+    try {
+      const { data } = await client.post('/ai/ask', {
+        patient_id: selectedPatientId,
+        question,
+        conversation_history: messages.map(m => ({ role: m.role, content: m.content })),
+      })
+      setMessages([...newHistory, { role: 'assistant', content: data.answer }])
+    } catch (err: any) {
+      const msg = err?.response?.data?.detail ?? 'Something went wrong. Check that ANTHROPIC_API_KEY is set.'
+      setError(msg)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadSummary = async () => {
+    if (!selectedPatientId || summaryLoading) return
+    setError(null)
+    setSummaryLoading(true)
+    setMessages([])
+
+    try {
+      const { data } = await client.get(`/ai/summary/${selectedPatientId}`)
+      setMessages([
+        {
+          role: 'assistant',
+          content: `**Pre-appointment briefing for ${data.patient_name}**\n\n${data.summary}`,
+        },
+      ])
+    } catch (err: any) {
+      const msg = err?.response?.data?.detail ?? 'Failed to load summary.'
+      setError(msg)
+    } finally {
+      setSummaryLoading(false)
+    }
+  }
+
+  const handlePatientChange = (id: string) => {
+    setSelectedPatientId(id ? Number(id) : null)
+    setMessages([])
+    setError(null)
+  }
+
+  const formatContent = (text: string) => {
+    // Simple markdown-like rendering for bold and bullets
+    return text
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n- /g, '\n• ')
+      .replace(/\n/g, '<br />')
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-6 py-4">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center">
+            <Bot size={18} className="text-white" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-white text-sm">AI Clinical Assistant</h3>
+            <p className="text-white/70 text-xs">Powered by Claude · Ask anything about your patient</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-5 space-y-4">
+        {/* Patient picker + Summary button */}
+        <div className="flex gap-2">
+          <select
+            value={selectedPatientId ?? ''}
+            onChange={e => handlePatientChange(e.target.value)}
+            className="flex-1 px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 text-slate-700 bg-white"
+          >
+            <option value="">— Select a patient —</option>
+            {patients.map(p => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+          <button
+            onClick={loadSummary}
+            disabled={!selectedPatientId || summaryLoading}
+            className="flex items-center gap-1.5 px-4 py-2.5 bg-violet-50 hover:bg-violet-100 disabled:opacity-50 disabled:cursor-not-allowed text-violet-700 rounded-xl text-sm font-medium transition-colors"
+          >
+            <Sparkles size={14} />
+            {summaryLoading ? 'Loading…' : 'Brief me'}
+          </button>
+        </div>
+
+        {/* Chat window */}
+        <div className="h-72 overflow-y-auto rounded-xl bg-slate-50 border border-slate-100 p-4 space-y-3 flex flex-col">
+          {messages.length === 0 && !loading && (
+            <div className="flex-1 flex flex-col items-center justify-center text-center text-slate-400 space-y-2">
+              <Bot size={28} className="opacity-40" />
+              <p className="text-sm">Select a patient and ask a question, or click <strong>Brief me</strong> for a pre-appointment summary.</p>
+            </div>
+          )}
+
+          {messages.map((m, i) => (
+            <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              {m.role === 'assistant' && (
+                <div className="w-6 h-6 bg-violet-100 rounded-full flex items-center justify-center shrink-0 mt-1 mr-2">
+                  <Bot size={12} className="text-violet-600" />
+                </div>
+              )}
+              <div
+                className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                  m.role === 'user'
+                    ? 'bg-purple-600 text-white rounded-br-sm'
+                    : 'bg-white border border-slate-200 text-slate-700 rounded-bl-sm'
+                }`}
+                dangerouslySetInnerHTML={{ __html: formatContent(m.content) }}
+              />
+            </div>
+          ))}
+
+          {loading && (
+            <div className="flex justify-start">
+              <div className="w-6 h-6 bg-violet-100 rounded-full flex items-center justify-center shrink-0 mt-1 mr-2">
+                <Bot size={12} className="text-violet-600" />
+              </div>
+              <div className="bg-white border border-slate-200 rounded-2xl rounded-bl-sm px-4 py-3">
+                <div className="flex gap-1 items-center">
+                  <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce [animation-delay:0ms]" />
+                  <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce [animation-delay:150ms]" />
+                  <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce [animation-delay:300ms]" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div ref={bottomRef} />
+        </div>
+
+        {/* Error banner */}
+        {error && (
+          <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
+            <span className="flex-1">{error}</span>
+            <button onClick={() => setError(null)}><X size={14} /></button>
+          </div>
+        )}
+
+        {/* Input */}
+        <div className="flex gap-2">
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+            disabled={!selectedPatientId || loading}
+            placeholder={selectedPatientId ? 'Ask about this patient…' : 'Select a patient first'}
+            className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-slate-50 disabled:text-slate-400"
+          />
+          <button
+            onClick={sendMessage}
+            disabled={!input.trim() || !selectedPatientId || loading}
+            className="w-10 h-10 flex items-center justify-center bg-purple-600 hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl transition-colors"
+          >
+            <Send size={15} />
+          </button>
+        </div>
+
+        {messages.length > 0 && (
+          <button
+            onClick={() => setMessages([])}
+            className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
+          >
+            Clear conversation
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Main Page ──────────────────────────────────────────────────────────────────
 
 export default function DoctorPortal() {
   const { user } = useAuth()
@@ -95,7 +298,7 @@ export default function DoctorPortal() {
           <Stethoscope size={32} className="text-purple-600" />
         </div>
         <h1 className="text-2xl font-bold text-slate-800">Doctor Portal</h1>
-        <p className="text-slate-500">View your schedule, manage appointments, and update patient notes.</p>
+        <p className="text-slate-500">View your schedule, manage appointments, and use your AI assistant.</p>
       </div>
 
       {/* Doctor Selector — hidden when logged in as doctor */}
@@ -263,6 +466,9 @@ export default function DoctorPortal() {
           </>
         )
       )}
+
+      {/* AI Assistant — always visible */}
+      <AiAssistant patients={patients} />
 
       {/* Notes Modal */}
       {notesModal && (
