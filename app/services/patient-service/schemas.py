@@ -3,7 +3,7 @@ from typing import Optional
 from datetime import date, datetime
 
 
-# ── Patient ──────────────────────────────────────────────────────────────────
+# ── Patient ───────────────────────────────────────────────────────────────────
 
 class PatientCreate(BaseModel):
     name: str
@@ -37,7 +37,7 @@ class PatientResponse(BaseModel):
         from_attributes = True
 
 
-# ── Doctor ───────────────────────────────────────────────────────────────────
+# ── Doctor ────────────────────────────────────────────────────────────────────
 
 class DoctorCreate(BaseModel):
     name: str
@@ -78,7 +78,7 @@ class AppointmentCreate(BaseModel):
 class AppointmentUpdate(BaseModel):
     appointment_date: Optional[datetime] = None
     reason: Optional[str] = None
-    status: Optional[str] = None  # scheduled, completed, cancelled
+    status: Optional[str] = None
     notes: Optional[str] = None
 
 
@@ -94,3 +94,93 @@ class AppointmentResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ── Treatment ─────────────────────────────────────────────────────────────────
+
+class TreatmentCreate(BaseModel):
+    appointment_id: int
+    tooth_number: Optional[int] = None
+    procedure_type: str
+    description: Optional[str] = None
+    cost: float = 0.0
+
+
+class TreatmentUpdate(BaseModel):
+    tooth_number: Optional[int] = None
+    procedure_type: Optional[str] = None
+    description: Optional[str] = None
+    cost: Optional[float] = None
+
+
+class TreatmentResponse(BaseModel):
+    id: int
+    appointment_id: int
+    tooth_number: Optional[int]
+    procedure_type: str
+    description: Optional[str]
+    cost: float
+    created_at: Optional[datetime]
+
+    class Config:
+        from_attributes = True
+
+
+# ── Invoice ───────────────────────────────────────────────────────────────────
+
+class InvoiceCreate(BaseModel):
+    patient_id: int
+    appointment_id: Optional[int] = None
+    total_amount: float
+    status: str = "unpaid"
+    due_date: Optional[date] = None
+    notes: Optional[str] = None
+
+
+class InvoiceUpdate(BaseModel):
+    total_amount: Optional[float] = None
+    status: Optional[str] = None
+    due_date: Optional[date] = None
+    notes: Optional[str] = None
+
+
+class InvoiceResponse(BaseModel):
+    id: int
+    patient_id: int
+    appointment_id: Optional[int]
+    total_amount: float
+    status: str
+    due_date: Optional[date]
+    paid_at: Optional[datetime]
+    notes: Optional[str]
+    created_at: Optional[datetime]
+
+    class Config:
+        from_attributes = True
+
+
+# ── Auth / User ───────────────────────────────────────────────────────────────
+
+class UserCreate(BaseModel):
+    username: str
+    email: Optional[EmailStr] = None
+    full_name: Optional[str] = None
+    password: str
+    role: str = "admin"
+
+
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    email: Optional[str]
+    full_name: Optional[str]
+    role: str
+    created_at: Optional[datetime]
+
+    class Config:
+        from_attributes = True
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str

@@ -5,8 +5,9 @@ from typing import List, Optional
 from database import get_db
 from models import Appointment, Patient, Doctor
 from schemas import AppointmentCreate, AppointmentUpdate, AppointmentResponse
+from deps import get_current_user
 
-router = APIRouter(prefix="/appointments", tags=["Appointments"])
+router = APIRouter(prefix="/appointments", tags=["Appointments"], dependencies=[Depends(get_current_user)])
 
 
 @router.post("/", response_model=AppointmentResponse, status_code=201)

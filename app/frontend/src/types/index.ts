@@ -28,3 +28,32 @@ export interface Appointment {
   notes: string | null
   created_at: string | null
 }
+
+export interface Treatment {
+  id: number
+  appointment_id: number
+  tooth_number: number | null
+  procedure_type: string
+  description: string | null
+  cost: number
+  created_at: string | null
+}
+
+export interface Invoice {
+  id: number
+  patient_id: number
+  appointment_id: number | null
+  total_amount: number
+  status: string
+  due_date: string | null
+  paid_at: string | null
+  notes: string | null
+  created_at: string | null
+}
+
+export interface AuthUser {
+  id: number
+  username: string
+  role: string
+  full_name: string | null
+}

@@ -5,8 +5,9 @@ from typing import List
 from database import get_db
 from models import Doctor
 from schemas import DoctorCreate, DoctorUpdate, DoctorResponse
+from deps import get_current_user
 
-router = APIRouter(prefix="/doctors", tags=["Doctors"])
+router = APIRouter(prefix="/doctors", tags=["Doctors"], dependencies=[Depends(get_current_user)])
 
 
 @router.post("/", response_model=DoctorResponse, status_code=201)
