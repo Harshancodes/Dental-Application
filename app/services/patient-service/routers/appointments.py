@@ -12,7 +12,17 @@ router = APIRouter(prefix="/appointments", tags=["Appointments"], dependencies=[
 
 
 @router.post("/", response_model=AppointmentResponse, status_code=201)
-def create_appointment(appointment: AppointmentCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+def create_appointment(
+    appointment: AppointmentCreate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    # Patients can only book for themselves
+    if current_user.role == "patient":
+        if current_user.patient_id != appointment.patient_id:
+            raise HTTPException(status_code=403, detail="You can only book appointments for yourself")
+
     patient = db.query(Patient).filter(Patient.id == appointment.patient_id).first()
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")

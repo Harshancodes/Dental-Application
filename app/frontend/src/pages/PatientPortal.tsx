@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { CalendarDays, User, Phone, Mail, MapPin, ClipboardList, Clock, XCircle, Bot, Send, Sparkles, X, Paperclip, Trash2, FileText, Upload } from 'lucide-react'
+import { CalendarDays, User, Phone, Mail, MapPin, ClipboardList, Clock, XCircle, Bot, Send, Sparkles, X, Paperclip, Trash2, FileText, Upload, Plus } from 'lucide-react'
 import { getPatients } from '../api/patients'
-import { cancelAppointment } from '../api/appointments'
+import { getDoctors } from '../api/doctors'
+import { cancelAppointment, createAppointment } from '../api/appointments'
 import client from '../api/client'
 import { useAuth } from '../context/AuthContext'
-import type { Patient, Appointment } from '../types'
+import type { Patient, Appointment, Doctor } from '../types'
 import SearchableSelect from '../components/SearchableSelect'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -218,6 +219,110 @@ function PatientFiles({ patientId }: { patientId: number }) {
   )
 }
 
+// ── Book Appointment Modal ────────────────────────────────────────────────────
+
+function BookAppointmentModal({
+  patientId,
+  doctors,
+  onClose,
+  onBooked,
+}: {
+  patientId: number
+  doctors: Doctor[]
+  onClose: () => void
+  onBooked: () => void
+}) {
+  const [doctorId, setDoctorId] = useState('')
+  const [date, setDate] = useState('')
+  const [time, setTime] = useState('')
+  const [reason, setReason] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!doctorId || !date || !time) return
+    setLoading(true)
+    setError(null)
+    try {
+      await createAppointment({
+        patient_id: patientId,
+        doctor_id: Number(doctorId),
+        appointment_date: `${date}T${time}:00`,
+        reason: reason || undefined,
+      })
+      onBooked()
+      onClose()
+    } catch (err: any) {
+      setError(err?.response?.data?.detail ?? 'Failed to book appointment.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <h2 className="text-lg font-semibold text-slate-800">Book an Appointment</h2>
+          <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"><X size={18} /></button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-600 mb-1">Doctor</label>
+            <SearchableSelect
+              options={doctors.map(d => ({ value: d.id, label: `${d.name} — ${d.specialization}` }))}
+              value={doctorId}
+              onChange={setDoctorId}
+              placeholder="Select a doctor..."
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1">Date</label>
+              <input
+                type="date"
+                required
+                min={new Date().toISOString().split('T')[0]}
+                value={date}
+                onChange={e => setDate(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1">Time</label>
+              <input
+                type="time"
+                required
+                value={time}
+                onChange={e => setTime(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-600 mb-1">Reason <span className="text-slate-400 font-normal">(optional)</span></label>
+            <input
+              type="text"
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              placeholder="e.g. Routine checkup, toothache…"
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          {error && <div className="text-sm text-red-600 bg-red-50 rounded-xl px-3 py-2">{error}</div>}
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 border border-slate-200 text-slate-600 rounded-xl text-sm hover:bg-slate-50 transition-colors">Cancel</button>
+            <button type="submit" disabled={loading || !doctorId || !date || !time} className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-xl text-sm font-medium transition-colors">
+              {loading ? 'Booking…' : 'Book Appointment'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function PatientPortal() {
@@ -225,11 +330,14 @@ export default function PatientPortal() {
   const isPatientRole = user?.role === 'patient' && user?.patient_id != null
 
   const [patients, setPatients] = useState<Patient[]>([])
+  const [doctors, setDoctors] = useState<Doctor[]>([])
   const [selected, setSelected] = useState<Patient | null>(null)
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(false)
+  const [showBooking, setShowBooking] = useState(false)
 
   useEffect(() => {
+    getDoctors().then(({ data }) => setDoctors(data))
     if (isPatientRole) {
       setLoading(true)
       Promise.all([
@@ -257,13 +365,15 @@ export default function PatientPortal() {
     setLoading(false)
   }
 
+  const refreshAppointments = async (patientId: number) => {
+    const { data } = await client.get<Appointment[]>(`/appointments/?patient_id=${patientId}`)
+    setAppointments(data.sort((a, b) => new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime()))
+  }
+
   const handleCancel = async (id: number) => {
     if (!window.confirm('Cancel this appointment?')) return
     await cancelAppointment(id)
-    if (selected) {
-      const { data } = await client.get<Appointment[]>(`/appointments/?patient_id=${selected.id}`)
-      setAppointments(data.sort((a, b) => new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime()))
-    }
+    if (selected) refreshAppointments(selected.id)
   }
 
   const upcoming = appointments.filter((a) => a.status === 'scheduled' && new Date(a.appointment_date) >= new Date())
@@ -331,7 +441,18 @@ export default function PatientPortal() {
           ) : (
             <>
               <section>
-                <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">Upcoming Appointments ({upcoming.length})</h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Upcoming Appointments ({upcoming.length})</h3>
+                  {selected && (
+                    <button
+                      onClick={() => setShowBooking(true)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-medium transition-colors"
+                    >
+                      <Plus size={13} />
+                      Book Appointment
+                    </button>
+                  )}
+                </div>
                 {upcoming.length === 0 ? (
                   <div className="bg-white rounded-2xl border border-slate-100 p-8 text-center text-slate-400">No upcoming appointments.</div>
                 ) : (
@@ -353,6 +474,14 @@ export default function PatientPortal() {
           {/* AI Chat */}
           <PatientAiChat patientId={selected.id} />
         </>
+      )}
+      {showBooking && selected && (
+        <BookAppointmentModal
+          patientId={selected.id}
+          doctors={doctors}
+          onClose={() => setShowBooking(false)}
+          onBooked={() => refreshAppointments(selected.id)}
+        />
       )}
     </div>
   )
