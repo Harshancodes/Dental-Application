@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Plus, Trash2, CheckCircle, Search, Download } from 'lucide-react'
 import { getInvoices, createInvoice, markPaid, deleteInvoice } from '../api/billing'
+import SearchableSelect from '../components/SearchableSelect'
 import { getPatients } from '../api/patients'
 import type { Invoice, Patient } from '../types'
 import Modal from '../components/Modal'
@@ -226,10 +227,13 @@ export default function Billing() {
         <Modal title="New Invoice" onClose={() => setShowModal(false)}>
           <form onSubmit={handleSubmit} className="space-y-4">
             <Field label="Patient *">
-              <select required value={form.patient_id} onChange={(e) => setForm({ ...form, patient_id: e.target.value })} className={inputCls}>
-                <option value="">Select patient...</option>
-                {patients.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
+              <SearchableSelect
+                required
+                options={patients.map(p => ({ value: p.id, label: p.name }))}
+                value={form.patient_id}
+                onChange={v => setForm({ ...form, patient_id: v })}
+                placeholder="Search patients..."
+              />
             </Field>
             <div className="grid grid-cols-2 gap-4">
               <Field label="Total Amount ($) *">

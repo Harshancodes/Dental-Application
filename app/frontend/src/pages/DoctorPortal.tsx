@@ -6,6 +6,7 @@ import { updateAppointment } from '../api/appointments'
 import client from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import type { Doctor, Patient, Appointment } from '../types'
+import SearchableSelect from '../components/SearchableSelect'
 
 const STATUS_COLORS: Record<string, string> = {
   scheduled: 'bg-blue-100 text-blue-700',
@@ -305,15 +306,12 @@ export default function DoctorPortal() {
       {!isDoctorRole && (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
           <label className="block text-sm font-medium text-slate-600 mb-2">Select Doctor</label>
-          <select
-            onChange={(e) => handleSelect(e.target.value)}
-            className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 text-slate-800 bg-white"
-          >
-            <option value="">— Choose your name —</option>
-            {doctors.map((d) => (
-              <option key={d.id} value={d.id}>Dr. {d.name} — {d.specialization}</option>
-            ))}
-          </select>
+          <SearchableSelect
+            options={doctors.map(d => ({ value: d.id, label: `Dr. ${d.name} — ${d.specialization}` }))}
+            value={selected?.id ?? ''}
+            onChange={handleSelect}
+            placeholder="Search doctors..."
+          />
         </div>
       )}
 

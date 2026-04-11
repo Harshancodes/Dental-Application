@@ -10,6 +10,7 @@ import { getPatients } from '../api/patients'
 import { getDoctors } from '../api/doctors'
 import type { Appointment, Patient, Doctor } from '../types'
 import Modal from '../components/Modal'
+import SearchableSelect from '../components/SearchableSelect'
 
 const STATUS_COLORS: Record<string, string> = {
   scheduled: 'bg-blue-100 text-blue-700',
@@ -183,30 +184,22 @@ export default function Appointments() {
         <Modal title="Book Appointment" onClose={() => setShowModal(false)}>
           <form onSubmit={handleSubmit} className="space-y-4">
             <Field label="Patient *">
-              <select
+              <SearchableSelect
                 required
+                options={patients.map(p => ({ value: p.id, label: p.name }))}
                 value={form.patient_id}
-                onChange={(e) => setForm({ ...form, patient_id: e.target.value })}
-                className={inputCls}
-              >
-                <option value="">Select patient...</option>
-                {patients.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
+                onChange={v => setForm({ ...form, patient_id: v })}
+                placeholder="Search patients..."
+              />
             </Field>
             <Field label="Doctor *">
-              <select
+              <SearchableSelect
                 required
+                options={doctors.map(d => ({ value: d.id, label: `Dr. ${d.name} — ${d.specialization}` }))}
                 value={form.doctor_id}
-                onChange={(e) => setForm({ ...form, doctor_id: e.target.value })}
-                className={inputCls}
-              >
-                <option value="">Select doctor...</option>
-                {doctors.map((d) => (
-                  <option key={d.id} value={d.id}>Dr. {d.name} — {d.specialization}</option>
-                ))}
-              </select>
+                onChange={v => setForm({ ...form, doctor_id: v })}
+                placeholder="Search doctors..."
+              />
             </Field>
             <Field label="Date & Time *">
               <input
