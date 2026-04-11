@@ -3,7 +3,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
-from routers import patients, doctors, appointments, treatments, billing, auth, ai
+from routers import patients, doctors, appointments, treatments, billing, auth, ai, uploads
 
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 
@@ -45,6 +45,7 @@ app.include_router(appointments.router)
 app.include_router(treatments.router)
 app.include_router(billing.router)
 app.include_router(ai.router)
+app.include_router(uploads.router)
 
 # Seed endpoint only available in development
 if ENVIRONMENT == "development":

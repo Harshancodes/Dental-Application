@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Plus, Trash2, CheckCircle, Search } from 'lucide-react'
+import { Plus, Trash2, CheckCircle, Search, Download } from 'lucide-react'
 import { getInvoices, createInvoice, markPaid, deleteInvoice } from '../api/billing'
 import { getPatients } from '../api/patients'
 import type { Invoice, Patient } from '../types'
@@ -69,6 +69,20 @@ export default function Billing() {
     if (!window.confirm('Delete this invoice?')) return
     await deleteInvoice(id)
     load()
+  }
+
+  const handleDownloadPdf = (id: number) => {
+    const token = localStorage.getItem('token')
+    const url = `/api/billing/${id}/pdf`
+    // Open in new tab — the browser will download it
+    fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => res.blob())
+      .then(blob => {
+        const a = document.createElement('a')
+        a.href = URL.createObjectURL(blob)
+        a.download = `INV-${String(id).padStart(4, '0')}.pdf`
+        a.click()
+      })
   }
 
   const totalRevenue = invoices.filter((i) => i.status === 'paid').reduce((s, i) => s + i.total_amount, 0)
@@ -185,6 +199,13 @@ export default function Billing() {
                           Mark Paid
                         </button>
                       )}
+                      <button
+                        onClick={() => handleDownloadPdf(inv.id)}
+                        className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Download PDF"
+                      >
+                        <Download size={15} />
+                      </button>
                       <button
                         onClick={() => handleDelete(inv.id)}
                         className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"

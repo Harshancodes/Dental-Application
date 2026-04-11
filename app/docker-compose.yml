@@ -26,6 +26,8 @@ services:
         condition: service_healthy
     env_file:
       - ./services/patient-service/.env
+    volumes:
+      - uploads_data:/app/uploads
 
   frontend:
     build: ./frontend
@@ -37,3 +39,4 @@ services:
 
 volumes:
   postgres_data:
+  uploads_data:

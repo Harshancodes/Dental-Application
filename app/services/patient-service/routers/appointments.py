@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
@@ -6,22 +6,35 @@ from database import get_db
 from models import Appointment, Patient, Doctor
 from schemas import AppointmentCreate, AppointmentUpdate, AppointmentResponse
 from deps import get_current_user
+from services.email_service import send_appointment_confirmation, send_appointment_cancellation
 
 router = APIRouter(prefix="/appointments", tags=["Appointments"], dependencies=[Depends(get_current_user)])
 
 
 @router.post("/", response_model=AppointmentResponse, status_code=201)
-def create_appointment(appointment: AppointmentCreate, db: Session = Depends(get_db)):
-    # Validate that patient and doctor exist
-    if not db.query(Patient).filter(Patient.id == appointment.patient_id).first():
+def create_appointment(appointment: AppointmentCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    patient = db.query(Patient).filter(Patient.id == appointment.patient_id).first()
+    if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
-    if not db.query(Doctor).filter(Doctor.id == appointment.doctor_id).first():
+    doctor = db.query(Doctor).filter(Doctor.id == appointment.doctor_id).first()
+    if not doctor:
         raise HTTPException(status_code=404, detail="Doctor not found")
 
     db_appointment = Appointment(**appointment.model_dump())
     db.add(db_appointment)
     db.commit()
     db.refresh(db_appointment)
+
+    # Send confirmation email in background (non-blocking)
+    if patient.email:
+        background_tasks.add_task(
+            send_appointment_confirmation,
+            patient.name, patient.email,
+            db_appointment.appointment_date,
+            db_appointment.reason,
+            doctor.name,
+        )
+
     return db_appointment
 
 
@@ -71,11 +84,22 @@ def delete_appointment(appointment_id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/{appointment_id}/cancel", response_model=AppointmentResponse)
-def cancel_appointment(appointment_id: int, db: Session = Depends(get_db)):
+def cancel_appointment(appointment_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
     if not appointment:
         raise HTTPException(status_code=404, detail="Appointment not found")
     appointment.status = "cancelled"
     db.commit()
     db.refresh(appointment)
+
+    # Send cancellation email in background
+    patient = db.query(Patient).filter(Patient.id == appointment.patient_id).first()
+    if patient and patient.email:
+        background_tasks.add_task(
+            send_appointment_cancellation,
+            patient.name, patient.email,
+            appointment.appointment_date,
+            appointment.reason,
+        )
+
     return appointment

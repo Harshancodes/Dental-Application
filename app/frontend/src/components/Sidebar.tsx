@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Users, Stethoscope, CalendarDays, User, UserCog, Syringe, Receipt, LogOut } from 'lucide-react'
+import { LayoutDashboard, Users, Stethoscope, CalendarDays, User, UserCog, Syringe, Receipt, LogOut, CalendarRange } from 'lucide-react'
 import clsx from 'clsx'
 import { useAuth } from '../context/AuthContext'
 
@@ -8,6 +8,7 @@ const adminNav = [
   { to: '/patients', icon: Users, label: 'Patients' },
   { to: '/doctors', icon: Stethoscope, label: 'Doctors' },
   { to: '/appointments', icon: CalendarDays, label: 'Appointments' },
+  { to: '/calendar', icon: CalendarRange, label: 'Calendar' },
   { to: '/treatments', icon: Syringe, label: 'Treatments' },
   { to: '/billing', icon: Receipt, label: 'Billing' },
 ]
