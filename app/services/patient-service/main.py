@@ -1,4 +1,6 @@
 import os
+import logging
+import time
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -7,6 +9,14 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from routers import patients, doctors, appointments, treatments, billing, auth, ai, uploads
+
+# ── Structured logging ────────────────────────────────────────────────────────
+# In production logs go to stdout and are collected by Docker / your log service
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+logger = logging.getLogger("dental-api")
 
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 
@@ -78,6 +88,34 @@ if ENVIRONMENT == "development":
     app.include_router(seed.router)
 
 
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Log every request with method, path, status, and duration."""
+    start = time.perf_counter()
+    response = await call_next(request)
+    duration = (time.perf_counter() - start) * 1000
+    logger.info("%s %s → %d (%.1fms)", request.method, request.url.path, response.status_code, duration)
+    return response
+
+
 @app.get("/", tags=["Health"])
 def root():
     return {"status": "ok", "message": "Dental Clinic API v2", "environment": ENVIRONMENT}
+
+
+@app.get("/health", tags=["Health"])
+def health(db=None):
+    """
+    Deep health check — verifies the database is reachable.
+    Used by Docker healthcheck and load balancers.
+    Returns 200 if healthy, 503 if the DB is down.
+    """
+    from database import SessionLocal
+    try:
+        db = SessionLocal()
+        db.execute(__import__("sqlalchemy").text("SELECT 1"))
+        db.close()
+        return {"status": "healthy", "database": "connected"}
+    except Exception as e:
+        logger.error("Health check failed: %s", e)
+        return JSONResponse(status_code=503, content={"status": "unhealthy", "database": "unreachable"})
