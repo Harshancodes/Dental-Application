@@ -14,7 +14,6 @@ if REDIS_URL:
     # Production: store counters in Redis so all Gunicorn workers share state
     # Without Redis, each worker has its own counter — a user could make
     # 10 * num_workers attempts per minute by hitting different workers
-    from slowapi.wrappers import storage_options  # noqa
     limiter = Limiter(key_func=get_remote_address, storage_uri=REDIS_URL)
 else:
     # Development: in-memory storage (fine for single worker)
