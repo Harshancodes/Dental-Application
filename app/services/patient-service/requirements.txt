@@ -13,3 +13,6 @@ anthropic
 reportlab
 aiofiles
 slowapi
+pytest
+pytest-asyncio
+httpx
