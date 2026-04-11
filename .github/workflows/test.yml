@@ -1,0 +1,68 @@
+# This file tells GitHub Actions what to do when code is pushed.
+# Think of it as a recipe: "when X happens, run these steps on a cloud server."
+
+name: Run Tests
+
+# Trigger: run this workflow whenever code is pushed to main,
+# or when a Pull Request is opened targeting main.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-tests:
+    name: Backend (pytest)
+    runs-on: ubuntu-latest   # GitHub spins up a fresh Ubuntu Linux server
+
+    steps:
+      # Step 1: Download the code from GitHub onto the server
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Install Python 3.12
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"   # Cache pip downloads so repeat runs are faster
+
+      # Step 3: Install all Python dependencies
+      - name: Install dependencies
+        working-directory: app/services/patient-service
+        run: pip install -r requirements.txt
+
+      # Step 4: Run the tests
+      # -v = verbose (show each test name)
+      # --tb=short = show short traceback on failure
+      - name: Run pytest
+        working-directory: app/services/patient-service
+        run: pytest tests/ -v --tb=short
+
+  frontend-build:
+    name: Frontend (type check + build)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Install Node.js 20
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: app/frontend/package.json
+
+      # Install npm packages
+      - name: Install dependencies
+        working-directory: app/frontend
+        run: npm install
+
+      # TypeScript type check + Vite build
+      # If there are type errors or broken imports, this fails
+      - name: Build
+        working-directory: app/frontend
+        run: npm run build
