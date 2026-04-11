@@ -16,6 +16,20 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    container_name: dental-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    command: redis-server --appendonly yes  # Persist data to disk
+
   patient-service:
     build: ./services/patient-service
     container_name: patient-service
@@ -23,6 +37,8 @@ services:
       - "8000:8000"
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     env_file:
       - ./services/patient-service/.env
@@ -45,4 +61,5 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:
   uploads_data:

@@ -5,9 +5,9 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from limiter import limiter
 from routers import patients, doctors, appointments, treatments, billing, auth, ai, uploads
 
 # ── Structured logging ────────────────────────────────────────────────────────
@@ -33,10 +33,6 @@ else:
         "http://localhost:5173",  # Vite dev server
         "http://127.0.0.1:3000",
     ]
-
-# Rate limiter — uses client IP address as the key
-# Limits are applied per-route (see routers/auth.py for login limiting)
-limiter = Limiter(key_func=get_remote_address)
 
 app = FastAPI(
     title="Dental Clinic API",

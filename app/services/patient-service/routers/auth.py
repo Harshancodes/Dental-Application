@@ -1,15 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
 from database import get_db
 from models import User
 from schemas import UserCreate, UserResponse, Token
 from deps import hash_password, verify_password, create_access_token, get_current_user
+from limiter import limiter
 
-limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 

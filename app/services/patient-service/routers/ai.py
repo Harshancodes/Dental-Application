@@ -8,6 +8,7 @@ import anthropic
 from database import get_db
 from models import Patient, Appointment, Treatment, Invoice
 from deps import get_current_user
+from services.cache import cache_get, cache_set, cache_delete_pattern
 
 router = APIRouter(prefix="/ai", tags=["AI Assistant"], dependencies=[Depends(get_current_user)])
 
@@ -153,7 +154,18 @@ def ask_about_patient(body: AskRequest, db: Session = Depends(get_db)):
 
 @router.get("/summary/{patient_id}", response_model=SummaryResponse)
 def get_patient_summary(patient_id: int, db: Session = Depends(get_db)):
-    """Generate a pre-appointment briefing for a patient."""
+    """
+    Generate a pre-appointment briefing for a patient.
+    Result is cached in Redis for 10 minutes — avoids hitting Claude API
+    repeatedly for the same patient within a short window.
+    """
+    cache_key = f"ai:summary:{patient_id}"
+
+    # Try cache first
+    cached = cache_get(cache_key)
+    if cached:
+        return SummaryResponse(**cached)
+
     client_ai = _get_client()
     context = _build_patient_context(patient_id, db)
     patient = db.query(Patient).filter(Patient.id == patient_id).first()
@@ -176,4 +188,9 @@ def get_patient_summary(patient_id: int, db: Session = Depends(get_db)):
         ],
     )
 
-    return SummaryResponse(summary=response.content[0].text, patient_name=patient.name)
+    result = SummaryResponse(summary=response.content[0].text, patient_name=patient.name)
+
+    # Cache for 10 minutes (600 seconds)
+    cache_set(cache_key, result.model_dump(), ttl_seconds=600)
+
+    return result
