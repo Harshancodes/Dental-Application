@@ -97,36 +97,36 @@ export default function PatientProfile() {
 
       {/* Patient header */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-        <div className="flex items-start gap-5">
-          <div className="w-16 h-16 bg-blue-100 text-blue-700 rounded-2xl flex items-center justify-center text-2xl font-bold shrink-0">
-            {patient.name.charAt(0)}
-          </div>
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold text-slate-800">{patient.name}</h1>
-            <p className="text-slate-400 text-sm mt-0.5">Patient ID #{patient.id}</p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
-              {patient.date_of_birth && (
-                <InfoItem icon={CalendarDays} label="Date of Birth" value={patient.date_of_birth} />
-              )}
-              {patient.phone && <InfoItem icon={Phone} label="Phone" value={patient.phone} />}
-              {patient.email && <InfoItem icon={Mail} label="Email" value={patient.email} />}
-              {patient.address && <InfoItem icon={MapPin} label="Address" value={patient.address} />}
+        <div className="flex flex-col sm:flex-row items-start gap-5">
+          <div className="flex items-start gap-4 flex-1">
+            <div className="w-14 h-14 bg-blue-100 text-blue-700 rounded-2xl flex items-center justify-center text-2xl font-bold shrink-0">
+              {patient.name.charAt(0)}
+            </div>
+            <div className="flex-1">
+              <h1 className="text-xl font-bold text-slate-800">{patient.name}</h1>
+              <p className="text-slate-400 text-sm mt-0.5">Patient ID #{patient.id}</p>
+              <div className="grid grid-cols-2 gap-3 mt-3">
+                {patient.date_of_birth && <InfoItem icon={CalendarDays} label="Date of Birth" value={patient.date_of_birth} />}
+                {patient.phone && <InfoItem icon={Phone} label="Phone" value={patient.phone} />}
+                {patient.email && <InfoItem icon={Mail} label="Email" value={patient.email} />}
+                {patient.address && <InfoItem icon={MapPin} label="Address" value={patient.address} />}
+              </div>
             </div>
           </div>
           {/* Quick stats */}
-          <div className="flex gap-4 text-center shrink-0">
-            <div className="bg-slate-50 rounded-xl px-4 py-3">
-              <p className="text-2xl font-bold text-slate-800">{appointments.length}</p>
-              <p className="text-xs text-slate-400 mt-0.5">Visits</p>
+          <div className="flex gap-3 text-center sm:shrink-0">
+            <div className="bg-slate-50 rounded-xl px-3 py-2">
+              <p className="text-xl font-bold text-slate-800">{appointments.length}</p>
+              <p className="text-xs text-slate-400">Visits</p>
             </div>
-            <div className="bg-slate-50 rounded-xl px-4 py-3">
-              <p className="text-2xl font-bold text-emerald-600">${totalSpend.toFixed(0)}</p>
-              <p className="text-xs text-slate-400 mt-0.5">Paid</p>
+            <div className="bg-slate-50 rounded-xl px-3 py-2">
+              <p className="text-xl font-bold text-emerald-600">${totalSpend.toFixed(0)}</p>
+              <p className="text-xs text-slate-400">Paid</p>
             </div>
             {outstanding > 0 && (
-              <div className="bg-red-50 rounded-xl px-4 py-3">
-                <p className="text-2xl font-bold text-red-600">${outstanding.toFixed(0)}</p>
-                <p className="text-xs text-red-400 mt-0.5">Owing</p>
+              <div className="bg-red-50 rounded-xl px-3 py-2">
+                <p className="text-xl font-bold text-red-600">${outstanding.toFixed(0)}</p>
+                <p className="text-xs text-red-400">Owing</p>
               </div>
             )}
           </div>
@@ -169,37 +169,49 @@ export default function PatientProfile() {
           {appointments.length === 0 ? (
             <div className="text-center py-12 text-slate-400">No appointments yet.</div>
           ) : (
-            <table className="w-full">
-              <thead className="bg-slate-50 border-b border-slate-100">
-                <tr className="text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                  <th className="px-5 py-3">Date</th>
-                  <th className="px-5 py-3">Doctor</th>
-                  <th className="px-5 py-3">Reason</th>
-                  <th className="px-5 py-3">Status</th>
-                  <th className="px-5 py-3">Notes</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
+            <>
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-slate-50 border-b border-slate-100">
+                    <tr className="text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                      <th className="px-5 py-3">Date</th>
+                      <th className="px-5 py-3">Doctor</th>
+                      <th className="px-5 py-3">Reason</th>
+                      <th className="px-5 py-3">Status</th>
+                      <th className="px-5 py-3">Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {appointments.map(a => (
+                      <tr key={a.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-5 py-3 text-sm text-slate-700 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5"><Clock size={13} className="text-slate-400" />{new Date(a.appointment_date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</div>
+                        </td>
+                        <td className="px-5 py-3 text-sm text-slate-700">Dr. {doctorName(a.doctor_id)}</td>
+                        <td className="px-5 py-3 text-sm text-slate-500">{a.reason ?? '—'}</td>
+                        <td className="px-5 py-3"><span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${STATUS_APPT[a.status]}`}>{a.status}</span></td>
+                        <td className="px-5 py-3 text-sm text-slate-400 italic">{a.notes ?? '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="md:hidden divide-y divide-slate-100">
                 {appointments.map(a => (
-                  <tr key={a.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-5 py-3 text-sm text-slate-700 whitespace-nowrap">
-                      <div className="flex items-center gap-1.5">
-                        <Clock size={13} className="text-slate-400" />
-                        {new Date(a.appointment_date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                  <div key={a.id} className="p-4 space-y-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-medium text-slate-700">{new Date(a.appointment_date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</p>
+                        <p className="text-xs text-slate-500">Dr. {doctorName(a.doctor_id)}</p>
                       </div>
-                    </td>
-                    <td className="px-5 py-3 text-sm text-slate-700">Dr. {doctorName(a.doctor_id)}</td>
-                    <td className="px-5 py-3 text-sm text-slate-500">{a.reason ?? '—'}</td>
-                    <td className="px-5 py-3">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${STATUS_APPT[a.status]}`}>
-                        {a.status}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 text-sm text-slate-400 italic">{a.notes ?? '—'}</td>
-                  </tr>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize shrink-0 ${STATUS_APPT[a.status]}`}>{a.status}</span>
+                    </div>
+                    {a.reason && <p className="text-xs text-slate-400">{a.reason}</p>}
+                    {a.notes && <p className="text-xs text-slate-400 italic">"{a.notes}"</p>}
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </>
           )}
         </div>
       )}

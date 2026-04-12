@@ -158,34 +158,50 @@ export default function Dashboard() {
         {recent.length === 0 ? (
           <div className="px-6 py-12 text-center text-slate-400">No appointments yet.</div>
         ) : (
-          <table className="w-full">
-            <thead>
-              <tr className="text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                <th className="px-6 py-3">ID</th>
-                <th className="px-6 py-3">Patient</th>
-                <th className="px-6 py-3">Doctor</th>
-                <th className="px-6 py-3">Date & Time</th>
-                <th className="px-6 py-3">Reason</th>
-                <th className="px-6 py-3">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
+          <>
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                    <th className="px-6 py-3">ID</th>
+                    <th className="px-6 py-3">Patient</th>
+                    <th className="px-6 py-3">Doctor</th>
+                    <th className="px-6 py-3">Date & Time</th>
+                    <th className="px-6 py-3">Reason</th>
+                    <th className="px-6 py-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {recent.map((a) => (
+                    <tr key={a.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-4 text-sm text-slate-500">#{a.id}</td>
+                      <td className="px-6 py-4 text-sm font-medium text-slate-700">Patient #{a.patient_id}</td>
+                      <td className="px-6 py-4 text-sm text-slate-600">Doctor #{a.doctor_id}</td>
+                      <td className="px-6 py-4 text-sm text-slate-600">{new Date(a.appointment_date).toLocaleString()}</td>
+                      <td className="px-6 py-4 text-sm text-slate-500">{a.reason ?? '—'}</td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${STATUS_COLORS[a.status] ?? 'bg-slate-100 text-slate-600'}`}>{a.status}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {/* Mobile cards */}
+            <div className="md:hidden divide-y divide-slate-100">
               {recent.map((a) => (
-                <tr key={a.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4 text-sm text-slate-500">#{a.id}</td>
-                  <td className="px-6 py-4 text-sm font-medium text-slate-700">Patient #{a.patient_id}</td>
-                  <td className="px-6 py-4 text-sm text-slate-600">Doctor #{a.doctor_id}</td>
-                  <td className="px-6 py-4 text-sm text-slate-600">{new Date(a.appointment_date).toLocaleString()}</td>
-                  <td className="px-6 py-4 text-sm text-slate-500">{a.reason ?? '—'}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${STATUS_COLORS[a.status] ?? 'bg-slate-100 text-slate-600'}`}>
-                      {a.status}
-                    </span>
-                  </td>
-                </tr>
+                <div key={a.id} className="p-4 flex items-start justify-between gap-2">
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-medium text-slate-700">Patient #{a.patient_id} · Dr. #{a.doctor_id}</p>
+                    <p className="text-xs text-slate-400">{new Date(a.appointment_date).toLocaleString()}</p>
+                    {a.reason && <p className="text-xs text-slate-400">{a.reason}</p>}
+                  </div>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize shrink-0 ${STATUS_COLORS[a.status] ?? 'bg-slate-100 text-slate-600'}`}>{a.status}</span>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </div>
     </div>

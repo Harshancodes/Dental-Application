@@ -124,59 +124,66 @@ export default function Appointments() {
             {search ? 'No appointments match your search.' : 'No appointments yet. Book one to get started.'}
           </div>
         ) : (
-          <table className="w-full">
-            <thead className="bg-slate-50 border-b border-slate-100">
-              <tr className="text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                <th className="px-6 py-3">Patient</th>
-                <th className="px-6 py-3">Doctor</th>
-                <th className="px-6 py-3">Date & Time</th>
-                <th className="px-6 py-3">Reason</th>
-                <th className="px-6 py-3">Status</th>
-                <th className="px-6 py-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
+          <>
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50 border-b border-slate-100">
+                  <tr className="text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                    <th className="px-6 py-3">Patient</th>
+                    <th className="px-6 py-3">Doctor</th>
+                    <th className="px-6 py-3">Date & Time</th>
+                    <th className="px-6 py-3">Reason</th>
+                    <th className="px-6 py-3">Status</th>
+                    <th className="px-6 py-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {filtered.map((a) => (
+                    <tr key={a.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-4 text-sm font-medium text-slate-800">{patientName(a.patient_id)}</td>
+                      <td className="px-6 py-4 text-sm text-slate-600">Dr. {doctorName(a.doctor_id)}</td>
+                      <td className="px-6 py-4 text-sm text-slate-600">{new Date(a.appointment_date).toLocaleString()}</td>
+                      <td className="px-6 py-4 text-sm text-slate-500">{a.reason ?? '—'}</td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${STATUS_COLORS[a.status] ?? 'bg-slate-100 text-slate-600'}`}>{a.status}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          {a.status === 'scheduled' && (
+                            <button onClick={() => handleCancel(a.id)} className="p-1.5 text-slate-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors" title="Cancel"><XCircle size={15} /></button>
+                          )}
+                          <button onClick={() => handleDelete(a.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete"><Trash2 size={15} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {/* Mobile cards */}
+            <div className="md:hidden divide-y divide-slate-100">
               {filtered.map((a) => (
-                <tr key={a.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4 text-sm font-medium text-slate-800">
-                    {patientName(a.patient_id)}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-slate-600">
-                    Dr. {doctorName(a.doctor_id)}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-slate-600">
-                    {new Date(a.appointment_date).toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-slate-500">{a.reason ?? '—'}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${STATUS_COLORS[a.status] ?? 'bg-slate-100 text-slate-600'}`}>
-                      {a.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      {a.status === 'scheduled' && (
-                        <button
-                          onClick={() => handleCancel(a.id)}
-                          className="p-1.5 text-slate-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors"
-                          title="Cancel appointment"
-                        >
-                          <XCircle size={15} />
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleDelete(a.id)}
-                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 size={15} />
-                      </button>
+                <div key={a.id} className="p-4 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800">{patientName(a.patient_id)}</p>
+                      <p className="text-xs text-slate-500">Dr. {doctorName(a.doctor_id)}</p>
                     </div>
-                  </td>
-                </tr>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize shrink-0 ${STATUS_COLORS[a.status] ?? 'bg-slate-100 text-slate-600'}`}>{a.status}</span>
+                  </div>
+                  <p className="text-xs text-slate-500">{new Date(a.appointment_date).toLocaleString()}</p>
+                  {a.reason && <p className="text-xs text-slate-400">{a.reason}</p>}
+                  <div className="flex gap-2 pt-1">
+                    {a.status === 'scheduled' && (
+                      <button onClick={() => handleCancel(a.id)} className="flex items-center gap-1 px-2.5 py-1 text-xs text-yellow-700 bg-yellow-50 rounded-lg"><XCircle size={12} />Cancel</button>
+                    )}
+                    <button onClick={() => handleDelete(a.id)} className="flex items-center gap-1 px-2.5 py-1 text-xs text-red-600 bg-red-50 rounded-lg"><Trash2 size={12} />Delete</button>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </div>
 

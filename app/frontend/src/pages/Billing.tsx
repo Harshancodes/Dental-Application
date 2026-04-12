@@ -155,7 +155,7 @@ export default function Billing() {
         </select>
       </div>
 
-      {/* Table */}
+      {/* Table / Cards */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center h-40">
@@ -164,61 +164,69 @@ export default function Billing() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-16 text-slate-400">No invoices found.</div>
         ) : (
-          <table className="w-full">
-            <thead className="bg-slate-50 border-b border-slate-100">
-              <tr className="text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                <th className="px-6 py-3">Invoice</th>
-                <th className="px-6 py-3">Patient</th>
-                <th className="px-6 py-3">Amount</th>
-                <th className="px-6 py-3">Status</th>
-                <th className="px-6 py-3">Due Date</th>
-                <th className="px-6 py-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
+          <>
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50 border-b border-slate-100">
+                  <tr className="text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                    <th className="px-6 py-3">Invoice</th>
+                    <th className="px-6 py-3">Patient</th>
+                    <th className="px-6 py-3">Amount</th>
+                    <th className="px-6 py-3">Status</th>
+                    <th className="px-6 py-3">Due Date</th>
+                    <th className="px-6 py-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {filtered.map((inv) => (
+                    <tr key={inv.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-4 text-sm text-slate-500">INV-{String(inv.id).padStart(4, '0')}</td>
+                      <td className="px-6 py-4 text-sm font-medium text-slate-800">{patientName(inv.patient_id)}</td>
+                      <td className="px-6 py-4 text-sm font-bold text-slate-800">${inv.total_amount.toFixed(2)}</td>
+                      <td className="px-6 py-4"><span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${STATUS_STYLES[inv.status] ?? 'bg-slate-100 text-slate-600'}`}>{inv.status}</span></td>
+                      <td className="px-6 py-4 text-sm text-slate-500">{inv.due_date ?? '—'}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          {inv.status !== 'paid' && (
+                            <button onClick={() => handleMarkPaid(inv.id)} className="flex items-center gap-1 px-2.5 py-1 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-medium transition-colors">
+                              <CheckCircle size={13} />Mark Paid
+                            </button>
+                          )}
+                          <button onClick={() => handleDownloadPdf(inv.id)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download PDF"><Download size={15} /></button>
+                          <button onClick={() => handleDelete(inv.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={15} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {/* Mobile cards */}
+            <div className="md:hidden divide-y divide-slate-100">
               {filtered.map((inv) => (
-                <tr key={inv.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4 text-sm text-slate-500">INV-{String(inv.id).padStart(4, '0')}</td>
-                  <td className="px-6 py-4 text-sm font-medium text-slate-800">{patientName(inv.patient_id)}</td>
-                  <td className="px-6 py-4 text-sm font-bold text-slate-800">${inv.total_amount.toFixed(2)}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${STATUS_STYLES[inv.status] ?? 'bg-slate-100 text-slate-600'}`}>
-                      {inv.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-slate-500">
-                    {inv.due_date ?? '—'}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      {inv.status !== 'paid' && (
-                        <button
-                          onClick={() => handleMarkPaid(inv.id)}
-                          className="flex items-center gap-1 px-2.5 py-1 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-medium transition-colors"
-                        >
-                          <CheckCircle size={13} />
-                          Mark Paid
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleDownloadPdf(inv.id)}
-                        className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Download PDF"
-                      >
-                        <Download size={15} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(inv.id)}
-                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      >
-                        <Trash2 size={15} />
-                      </button>
+                <div key={inv.id} className="p-4 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800">{patientName(inv.patient_id)}</p>
+                      <p className="text-xs text-slate-400">INV-{String(inv.id).padStart(4, '0')} · Due: {inv.due_date ?? '—'}</p>
                     </div>
-                  </td>
-                </tr>
+                    <div className="text-right shrink-0">
+                      <p className="text-sm font-bold text-slate-800">${inv.total_amount.toFixed(2)}</p>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_STYLES[inv.status] ?? 'bg-slate-100 text-slate-600'}`}>{inv.status}</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    {inv.status !== 'paid' && (
+                      <button onClick={() => handleMarkPaid(inv.id)} className="flex items-center gap-1 px-2.5 py-1 text-xs text-green-700 bg-green-50 rounded-lg"><CheckCircle size={12} />Mark Paid</button>
+                    )}
+                    <button onClick={() => handleDownloadPdf(inv.id)} className="flex items-center gap-1 px-2.5 py-1 text-xs text-blue-700 bg-blue-50 rounded-lg"><Download size={12} />PDF</button>
+                    <button onClick={() => handleDelete(inv.id)} className="flex items-center gap-1 px-2.5 py-1 text-xs text-red-600 bg-red-50 rounded-lg"><Trash2 size={12} />Delete</button>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </div>
 

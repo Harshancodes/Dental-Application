@@ -130,49 +130,60 @@ export default function Treatments() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-16 text-slate-400">No treatments found.</div>
         ) : (
-          <table className="w-full">
-            <thead className="bg-slate-50 border-b border-slate-100">
-              <tr className="text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                <th className="px-6 py-3">Procedure</th>
-                <th className="px-6 py-3">Appointment</th>
-                <th className="px-6 py-3">Tooth #</th>
-                <th className="px-6 py-3">Description</th>
-                <th className="px-6 py-3">Cost</th>
-                <th className="px-6 py-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
+          <>
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50 border-b border-slate-100">
+                  <tr className="text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                    <th className="px-6 py-3">Procedure</th>
+                    <th className="px-6 py-3">Appointment</th>
+                    <th className="px-6 py-3">Tooth #</th>
+                    <th className="px-6 py-3">Description</th>
+                    <th className="px-6 py-3">Cost</th>
+                    <th className="px-6 py-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {filtered.map((t) => (
+                    <tr key={t.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-4"><span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-medium">{t.procedure_type}</span></td>
+                      <td className="px-6 py-4 text-sm text-slate-600">Appt #{t.appointment_id}</td>
+                      <td className="px-6 py-4 text-sm text-slate-600">{t.tooth_number != null ? `#${t.tooth_number}` : '—'}</td>
+                      <td className="px-6 py-4 text-sm text-slate-500 max-w-xs truncate">{t.description ?? '—'}</td>
+                      <td className="px-6 py-4 text-sm font-semibold text-emerald-600">${t.cost.toFixed(2)}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => openEdit(t)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Pencil size={15} /></button>
+                          <button onClick={() => handleDelete(t.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={15} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {/* Mobile cards */}
+            <div className="md:hidden divide-y divide-slate-100">
               {filtered.map((t) => (
-                <tr key={t.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4">
-                    <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-medium">
-                      {t.procedure_type}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-slate-600">Appt #{t.appointment_id}</td>
-                  <td className="px-6 py-4 text-sm text-slate-600">
-                    {t.tooth_number != null ? `#${t.tooth_number}` : '—'}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-slate-500 max-w-xs truncate">
-                    {t.description ?? '—'}
-                  </td>
-                  <td className="px-6 py-4 text-sm font-semibold text-emerald-600">
-                    ${t.cost.toFixed(2)}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => openEdit(t)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                        <Pencil size={15} />
-                      </button>
-                      <button onClick={() => handleDelete(t.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                <div key={t.id} className="p-4 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-medium">{t.procedure_type}</span>
+                    <span className="text-sm font-semibold text-emerald-600">${t.cost.toFixed(2)}</span>
+                  </div>
+                  <div className="flex gap-3 text-xs text-slate-500">
+                    <span>Appt #{t.appointment_id}</span>
+                    {t.tooth_number != null && <span>Tooth #{t.tooth_number}</span>}
+                  </div>
+                  {t.description && <p className="text-xs text-slate-400">{t.description}</p>}
+                  <div className="flex gap-2 pt-1">
+                    <button onClick={() => openEdit(t)} className="flex items-center gap-1 px-2.5 py-1 text-xs text-blue-700 bg-blue-50 rounded-lg"><Pencil size={12} />Edit</button>
+                    <button onClick={() => handleDelete(t.id)} className="flex items-center gap-1 px-2.5 py-1 text-xs text-red-600 bg-red-50 rounded-lg"><Trash2 size={12} />Delete</button>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </div>
 

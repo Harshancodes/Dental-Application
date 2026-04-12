@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Users, Stethoscope, CalendarDays, User, UserCog, Syringe, Receipt, LogOut, CalendarRange } from 'lucide-react'
+import { LayoutDashboard, Users, Stethoscope, CalendarDays, User, UserCog, Syringe, Receipt, LogOut, CalendarRange, X } from 'lucide-react'
 import clsx from 'clsx'
 import { useAuth } from '../context/AuthContext'
 
@@ -18,31 +18,53 @@ const portalNav = [
   { to: '/doctor-portal', icon: UserCog, label: 'Doctor Portal' },
 ]
 
-export default function Sidebar() {
+interface SidebarProps {
+  open: boolean
+  onClose: () => void
+}
+
+export default function Sidebar({ open, onClose }: SidebarProps) {
   const { user, logout } = useAuth()
 
   return (
-    <aside className="w-64 bg-slate-900 flex flex-col shrink-0">
+    <aside
+      className={clsx(
+        'w-64 bg-slate-900 flex flex-col shrink-0 z-50',
+        // Desktop: always visible, static
+        'md:relative md:translate-x-0',
+        // Mobile: fixed drawer, slides in/out
+        'fixed inset-y-0 left-0 transition-transform duration-300 ease-in-out',
+        open ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+      )}
+    >
       {/* Logo */}
-      <div className="flex items-center gap-3 px-6 py-6 border-b border-slate-700">
-        <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center">
-          <Stethoscope size={20} className="text-white" />
+      <div className="flex items-center justify-between px-6 py-6 border-b border-slate-700">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center">
+            <Stethoscope size={20} className="text-white" />
+          </div>
+          <div>
+            <p className="text-white font-semibold text-sm leading-tight">Dental Clinic</p>
+            <p className="text-slate-400 text-xs">Management System</p>
+          </div>
         </div>
-        <div>
-          <p className="text-white font-semibold text-sm leading-tight">Dental Clinic</p>
-          <p className="text-slate-400 text-xs">Management System</p>
-        </div>
+        {/* Close button — mobile only */}
+        <button
+          onClick={onClose}
+          className="md:hidden p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+        >
+          <X size={18} />
+        </button>
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto">
-        {/* Admin sees everything */}
         {user?.role === 'admin' && (
           <>
             <div>
               <p className="px-3 mb-1.5 text-xs font-semibold text-slate-500 uppercase tracking-widest">Admin</p>
               <div className="space-y-1">
                 {adminNav.map(({ to, icon: Icon, label }) => (
-                  <NavLink key={to} to={to} className={({ isActive }) => clsx('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors', isActive ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white')}>
+                  <NavLink key={to} to={to} onClick={onClose} className={({ isActive }) => clsx('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors', isActive ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white')}>
                     <Icon size={18} />{label}
                   </NavLink>
                 ))}
@@ -52,7 +74,7 @@ export default function Sidebar() {
               <p className="px-3 mb-1.5 text-xs font-semibold text-slate-500 uppercase tracking-widest">Portals</p>
               <div className="space-y-1">
                 {portalNav.map(({ to, icon: Icon, label }) => (
-                  <NavLink key={to} to={to} className={({ isActive }) => clsx('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors', isActive ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white')}>
+                  <NavLink key={to} to={to} onClick={onClose} className={({ isActive }) => clsx('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors', isActive ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white')}>
                     <Icon size={18} />{label}
                   </NavLink>
                 ))}
@@ -61,24 +83,22 @@ export default function Sidebar() {
           </>
         )}
 
-        {/* Doctor sees only their portal */}
         {user?.role === 'doctor' && (
           <div>
             <p className="px-3 mb-1.5 text-xs font-semibold text-slate-500 uppercase tracking-widest">My Portal</p>
             <div className="space-y-1">
-              <NavLink to="/doctor-portal" className={({ isActive }) => clsx('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors', isActive ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white')}>
+              <NavLink to="/doctor-portal" onClick={onClose} className={({ isActive }) => clsx('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors', isActive ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white')}>
                 <UserCog size={18} />My Schedule
               </NavLink>
             </div>
           </div>
         )}
 
-        {/* Patient sees only their portal */}
         {user?.role === 'patient' && (
           <div>
             <p className="px-3 mb-1.5 text-xs font-semibold text-slate-500 uppercase tracking-widest">My Portal</p>
             <div className="space-y-1">
-              <NavLink to="/patient-portal" className={({ isActive }) => clsx('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors', isActive ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white')}>
+              <NavLink to="/patient-portal" onClick={onClose} className={({ isActive }) => clsx('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors', isActive ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white')}>
                 <User size={18} />My Appointments
               </NavLink>
             </div>
@@ -86,7 +106,7 @@ export default function Sidebar() {
         )}
       </nav>
 
-      {/* Logged in user + logout */}
+      {/* User + logout */}
       <div className="px-4 py-4 border-t border-slate-700">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0">
