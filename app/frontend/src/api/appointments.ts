@@ -8,4 +8,6 @@ export const updateAppointment = (id: number, data: Partial<Appointment>) =>
   client.patch<Appointment>(`/appointments/${id}`, data)
 export const cancelAppointment = (id: number) =>
   client.patch<Appointment>(`/appointments/${id}/cancel`)
+export const rescheduleAppointment = (id: number, newDate: string) =>
+  client.patch<Appointment>(`/appointments/${id}/reschedule`, null, { params: { new_date: newDate } })
 export const deleteAppointment = (id: number) => client.delete(`/appointments/${id}`)

@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { CalendarDays, User, Phone, Mail, MapPin, ClipboardList, Clock, XCircle, Bot, Send, Sparkles, X, Paperclip, Trash2, FileText, Upload, Plus } from 'lucide-react'
+import { CalendarDays, User, Phone, Mail, MapPin, ClipboardList, Clock, XCircle, Bot, Send, Sparkles, X, Paperclip, Trash2, FileText, Upload, Plus, RefreshCw, Receipt, Download } from 'lucide-react'
 import { getPatients } from '../api/patients'
 import { getDoctors } from '../api/doctors'
-import { cancelAppointment, createAppointment } from '../api/appointments'
+import { cancelAppointment, createAppointment, rescheduleAppointment } from '../api/appointments'
+import { getInvoices } from '../api/billing'
 import client from '../api/client'
 import { useAuth } from '../context/AuthContext'
-import type { Patient, Appointment, Doctor } from '../types'
+import type { Patient, Appointment, Doctor, Invoice } from '../types'
 import SearchableSelect from '../components/SearchableSelect'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -219,6 +220,90 @@ function PatientFiles({ patientId }: { patientId: number }) {
   )
 }
 
+// ── Reschedule Modal ──────────────────────────────────────────────────────────
+
+function RescheduleModal({
+  appointment,
+  onClose,
+  onRescheduled,
+}: {
+  appointment: Appointment
+  onClose: () => void
+  onRescheduled: () => void
+}) {
+  const existing = new Date(appointment.appointment_date)
+  const [date, setDate] = useState(existing.toISOString().split('T')[0])
+  const [time, setTime] = useState(existing.toTimeString().slice(0, 5))
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+    try {
+      await rescheduleAppointment(appointment.id, `${date}T${time}:00`)
+      onRescheduled()
+      onClose()
+    } catch (err: any) {
+      setError(err?.response?.data?.detail ?? 'Failed to reschedule.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <h2 className="text-lg font-semibold text-slate-800">Reschedule Appointment</h2>
+          <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"><X size={18} /></button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <p className="text-sm text-slate-500">
+            Current: <span className="font-medium text-slate-700">{existing.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</span>
+          </p>
+          <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+            Available Monday – Friday, 9:00 AM – 5:00 PM only
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1">New Date</label>
+              <input
+                type="date"
+                required
+                min={new Date().toISOString().split('T')[0]}
+                value={date}
+                onChange={e => setDate(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1">New Time</label>
+              <input
+                type="time"
+                required
+                min="09:00"
+                max="16:59"
+                value={time}
+                onChange={e => setTime(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          {error && <div className="text-sm text-red-600 bg-red-50 rounded-xl px-3 py-2">{error}</div>}
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 border border-slate-200 text-slate-600 rounded-xl text-sm hover:bg-slate-50 transition-colors">Cancel</button>
+            <button type="submit" disabled={loading} className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-xl text-sm font-medium transition-colors">
+              {loading ? 'Saving…' : 'Confirm'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 // ── Book Appointment Modal ────────────────────────────────────────────────────
 
 function BookAppointmentModal({
@@ -323,6 +408,81 @@ function BookAppointmentModal({
   )
 }
 
+// ── Patient Billing ───────────────────────────────────────────────────────────
+
+const INVOICE_STATUS: Record<string, string> = {
+  unpaid: 'bg-red-100 text-red-700 border border-red-200',
+  paid: 'bg-green-100 text-green-700 border border-green-200',
+  overdue: 'bg-orange-100 text-orange-700 border border-orange-200',
+}
+
+function PatientBilling({ patientId }: { patientId: number }) {
+  const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    getInvoices().then(({ data }) => {
+      setInvoices(data.filter(i => i.patient_id === patientId))
+      setLoading(false)
+    })
+  }, [patientId])
+
+  const handleDownload = (id: number) => {
+    const token = localStorage.getItem('token')
+    fetch(`/api/billing/${id}/pdf`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.blob())
+      .then(blob => {
+        const a = document.createElement('a')
+        a.href = URL.createObjectURL(blob)
+        a.download = `INV-${String(id).padStart(4, '0')}.pdf`
+        a.click()
+      })
+  }
+
+  const outstanding = invoices.filter(i => i.status !== 'paid').reduce((s, i) => s + i.total_amount, 0)
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Receipt size={16} className="text-slate-500" />
+          <h3 className="font-semibold text-slate-800 text-sm">My Invoices</h3>
+        </div>
+        {outstanding > 0 && (
+          <span className="text-xs font-medium text-red-600 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">
+            ${outstanding.toFixed(2)} outstanding
+          </span>
+        )}
+      </div>
+      {loading ? (
+        <div className="flex justify-center py-4">
+          <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : invoices.length === 0 ? (
+        <p className="text-sm text-slate-400 text-center py-4">No invoices yet.</p>
+      ) : (
+        <div className="space-y-2">
+          {invoices.map(inv => (
+            <div key={inv.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+              <div>
+                <p className="text-sm font-medium text-slate-700">INV-{String(inv.id).padStart(4, '0')}</p>
+                <p className="text-xs text-slate-400 mt-0.5">Due: {inv.due_date ?? '—'}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${INVOICE_STATUS[inv.status] ?? 'bg-slate-100 text-slate-600'}`}>{inv.status}</span>
+                <span className="text-sm font-bold text-slate-800">${inv.total_amount.toFixed(2)}</span>
+                <button onClick={() => handleDownload(inv.id)} className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg" title="Download PDF">
+                  <Download size={14} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function PatientPortal() {
@@ -335,6 +495,7 @@ export default function PatientPortal() {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(false)
   const [showBooking, setShowBooking] = useState(false)
+  const [rescheduling, setRescheduling] = useState<Appointment | null>(null)
 
   useEffect(() => {
     getDoctors().then(({ data }) => setDoctors(data))
@@ -456,7 +617,7 @@ export default function PatientPortal() {
                 {upcoming.length === 0 ? (
                   <div className="bg-white rounded-2xl border border-slate-100 p-8 text-center text-slate-400">No upcoming appointments.</div>
                 ) : (
-                  <div className="space-y-3">{upcoming.map((a) => <AppointmentCard key={a.id} appointment={a} onCancel={() => handleCancel(a.id)} />)}</div>
+                  <div className="space-y-3">{upcoming.map((a) => <AppointmentCard key={a.id} appointment={a} onCancel={() => handleCancel(a.id)} onReschedule={() => setRescheduling(a)} />)}</div>
                 )}
               </section>
               {past.length > 0 && (
@@ -467,6 +628,9 @@ export default function PatientPortal() {
               )}
             </>
           )}
+
+          {/* Billing */}
+          <PatientBilling patientId={selected.id} />
 
           {/* Files */}
           <PatientFiles patientId={selected.id} />
@@ -483,11 +647,18 @@ export default function PatientPortal() {
           onBooked={() => refreshAppointments(selected.id)}
         />
       )}
+      {rescheduling && selected && (
+        <RescheduleModal
+          appointment={rescheduling}
+          onClose={() => setRescheduling(null)}
+          onRescheduled={() => refreshAppointments(selected.id)}
+        />
+      )}
     </div>
   )
 }
 
-function AppointmentCard({ appointment: a, onCancel }: { appointment: Appointment; onCancel?: () => void }) {
+function AppointmentCard({ appointment: a, onCancel, onReschedule }: { appointment: Appointment; onCancel?: () => void; onReschedule?: () => void }) {
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-start justify-between gap-4">
       <div className="flex items-start gap-4">
@@ -500,10 +671,19 @@ function AppointmentCard({ appointment: a, onCancel }: { appointment: Appointmen
       </div>
       <div className="flex flex-col items-end gap-2 shrink-0">
         <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${STATUS_COLORS[a.status]}`}>{a.status}</span>
-        {onCancel && a.status === 'scheduled' && (
-          <button onClick={onCancel} className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 transition-colors">
-            <XCircle size={13} />Cancel
-          </button>
+        {a.status === 'scheduled' && (
+          <div className="flex items-center gap-2">
+            {onReschedule && (
+              <button onClick={onReschedule} className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-700 transition-colors">
+                <RefreshCw size={13} />Reschedule
+              </button>
+            )}
+            {onCancel && (
+              <button onClick={onCancel} className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 transition-colors">
+                <XCircle size={13} />Cancel
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>

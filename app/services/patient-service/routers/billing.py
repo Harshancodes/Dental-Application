@@ -40,9 +40,13 @@ def get_invoices(
     patient_id: Optional[int] = Query(None),
     status: Optional[str] = Query(None),
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     query = db.query(Invoice)
-    if patient_id:
+    # Patients can only see their own invoices
+    if current_user.role == "patient":
+        query = query.filter(Invoice.patient_id == current_user.patient_id)
+    elif patient_id:
         query = query.filter(Invoice.patient_id == patient_id)
     if status:
         query = query.filter(Invoice.status == status)

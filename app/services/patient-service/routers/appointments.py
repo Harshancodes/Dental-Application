@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from datetime import datetime
 
 from database import get_db
 from models import Appointment, Patient, Doctor
@@ -9,6 +10,14 @@ from deps import get_current_user
 from services.email_service import send_appointment_confirmation, send_appointment_cancellation
 
 router = APIRouter(prefix="/appointments", tags=["Appointments"], dependencies=[Depends(get_current_user)])
+
+
+def _validate_business_hours(dt: datetime):
+    """Appointments must be Mon–Fri, 9:00–17:00."""
+    if dt.weekday() > 4:
+        raise HTTPException(status_code=400, detail="Appointments are only available Monday to Friday")
+    if not (9 <= dt.hour < 17):
+        raise HTTPException(status_code=400, detail="Appointments are only available between 9:00 AM and 5:00 PM")
 
 
 @router.post("/", response_model=AppointmentResponse, status_code=201)
@@ -22,6 +31,8 @@ def create_appointment(
     if current_user.role == "patient":
         if current_user.patient_id != appointment.patient_id:
             raise HTTPException(status_code=403, detail="You can only book appointments for yourself")
+
+    _validate_business_hours(appointment.appointment_date)
 
     patient = db.query(Patient).filter(Patient.id == appointment.patient_id).first()
     if not patient:
@@ -91,6 +102,28 @@ def delete_appointment(appointment_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Appointment not found")
     db.delete(appointment)
     db.commit()
+
+
+@router.patch("/{appointment_id}/reschedule", response_model=AppointmentResponse)
+def reschedule_appointment(
+    appointment_id: int,
+    new_date: datetime,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    if appointment.status != "scheduled":
+        raise HTTPException(status_code=400, detail="Only scheduled appointments can be rescheduled")
+    if current_user.role == "patient" and current_user.patient_id != appointment.patient_id:
+        raise HTTPException(status_code=403, detail="You can only reschedule your own appointments")
+
+    _validate_business_hours(new_date)
+    appointment.appointment_date = new_date
+    db.commit()
+    db.refresh(appointment)
+    return appointment
 
 
 @router.patch("/{appointment_id}/cancel", response_model=AppointmentResponse)
