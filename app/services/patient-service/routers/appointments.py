@@ -13,11 +13,7 @@ router = APIRouter(prefix="/appointments", tags=["Appointments"], dependencies=[
 
 
 def _validate_business_hours(dt: datetime):
-    """Appointments must be Mon–Fri, 9:00–17:00."""
-    if dt.weekday() > 4:
-        raise HTTPException(status_code=400, detail="Appointments are only available Monday to Friday")
-    if not (9 <= dt.hour < 17):
-        raise HTTPException(status_code=400, detail="Appointments are only available between 9:00 AM and 5:00 PM")
+    pass  # No time restrictions — all days and times are available
 
 
 @router.post("/", response_model=AppointmentResponse, status_code=201)

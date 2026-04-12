@@ -263,9 +263,6 @@ function RescheduleModal({
           <p className="text-sm text-slate-500">
             Current: <span className="font-medium text-slate-700">{existing.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</span>
           </p>
-          <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
-            Available Monday – Friday, 9:00 AM – 5:00 PM only
-          </p>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1">New Date</label>
@@ -283,8 +280,6 @@ function RescheduleModal({
               <input
                 type="time"
                 required
-                min="09:00"
-                max="16:59"
                 value={time}
                 onChange={e => setTime(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
