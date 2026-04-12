@@ -103,7 +103,7 @@ function AiAssistant({ patients }: { patients: Patient[] }) {
           </div>
           <div>
             <h3 className="font-semibold text-white text-sm">AI Clinical Assistant</h3>
-            <p className="text-white/70 text-xs">Powered by Claude · Ask anything about your patient</p>
+            <p className="text-white/70 text-xs">Powered by GPT-4o · Ask anything about your patient</p>
           </div>
         </div>
       </div>

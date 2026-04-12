@@ -18,7 +18,7 @@ application that a dental clinic could actually use — not a toy project.
 | Migrations | Alembic |
 | Validation | Pydantic v2 |
 | Auth | JWT (python-jose) + bcrypt |
-| AI | Anthropic Claude API (`claude-opus-4-6`) |
+| AI | OpenAI API (`gpt-4o`) |
 | PDF | ReportLab |
 | Rate limiting | slowapi (Redis-backed in prod) |
 | Frontend | React 18 + TypeScript + Vite |
@@ -126,7 +126,7 @@ scripts/
 DATABASE_URL=postgresql://admin:admin@db:5432/patients
 SECRET_KEY=change-this-in-production
 ENVIRONMENT=development
-ANTHROPIC_API_KEY=sk-ant-...         # Required for AI features
+OPENAI_API_KEY=sk-proj-...           # Required for AI features
 REDIS_URL=redis://redis:6379/0
 ALLOWED_ORIGINS=http://localhost:3000
 # Optional email notifications:

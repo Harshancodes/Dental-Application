@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
-import anthropic
+from openai import OpenAI
 
 from database import get_db
 from models import Patient, Appointment, Treatment, Invoice
@@ -12,16 +12,16 @@ from services.cache import cache_get, cache_set, cache_delete_pattern
 
 router = APIRouter(prefix="/ai", tags=["AI Assistant"], dependencies=[Depends(get_current_user)])
 
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
 
-def _get_client() -> anthropic.Anthropic:
-    if not ANTHROPIC_API_KEY:
+def _get_client() -> OpenAI:
+    if not OPENAI_API_KEY:
         raise HTTPException(
             status_code=503,
-            detail="AI assistant is not configured. Add ANTHROPIC_API_KEY to your .env file.",
+            detail="AI assistant is not configured. Add OPENAI_API_KEY to your .env file.",
         )
-    return anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+    return OpenAI(api_key=OPENAI_API_KEY)
 
 
 def _build_patient_context(patient_id: int, db: Session) -> str:
@@ -135,20 +135,21 @@ def ask_about_patient(body: AskRequest, db: Session = Depends(get_db)):
 
     patient = db.query(Patient).filter(Patient.id == body.patient_id).first()
 
-    system = f"{SYSTEM_PROMPT}\n\n--- PATIENT RECORD ---\n{context}\n--- END OF RECORD ---"
+    system_content = f"{SYSTEM_PROMPT}\n\n--- PATIENT RECORD ---\n{context}\n--- END OF RECORD ---"
 
     # Build message history (multi-turn support)
-    messages = list(body.conversation_history or [])
+    messages = [{"role": "system", "content": system_content}]
+    for msg in (body.conversation_history or []):
+        messages.append({"role": msg["role"], "content": msg["content"]})
     messages.append({"role": "user", "content": body.question})
 
-    response = client_ai.messages.create(
-        model="claude-opus-4-6",
+    response = client_ai.chat.completions.create(
+        model="gpt-4o",
         max_tokens=1024,
-        system=system,
         messages=messages,
     )
 
-    answer = response.content[0].text
+    answer = response.choices[0].message.content
     return AskResponse(answer=answer, patient_name=patient.name)
 
 
@@ -156,7 +157,7 @@ def ask_about_patient(body: AskRequest, db: Session = Depends(get_db)):
 def get_patient_summary(patient_id: int, db: Session = Depends(get_db)):
     """
     Generate a pre-appointment briefing for a patient.
-    Result is cached in Redis for 10 minutes — avoids hitting Claude API
+    Result is cached in Redis for 10 minutes — avoids hitting OpenAI API
     repeatedly for the same patient within a short window.
     """
     cache_key = f"ai:summary:{patient_id}"
@@ -170,13 +171,13 @@ def get_patient_summary(patient_id: int, db: Session = Depends(get_db)):
     context = _build_patient_context(patient_id, db)
     patient = db.query(Patient).filter(Patient.id == patient_id).first()
 
-    system = f"{SYSTEM_PROMPT}\n\n--- PATIENT RECORD ---\n{context}\n--- END OF RECORD ---"
+    system_content = f"{SYSTEM_PROMPT}\n\n--- PATIENT RECORD ---\n{context}\n--- END OF RECORD ---"
 
-    response = client_ai.messages.create(
-        model="claude-opus-4-6",
+    response = client_ai.chat.completions.create(
+        model="gpt-4o",
         max_tokens=800,
-        system=system,
         messages=[
+            {"role": "system", "content": system_content},
             {
                 "role": "user",
                 "content": (
@@ -184,11 +185,11 @@ def get_patient_summary(patient_id: int, db: Session = Depends(get_db)):
                     "Include: key medical history, recent treatments, any outstanding issues or overdue follow-ups, "
                     "and 2-3 suggested questions to ask them today."
                 ),
-            }
+            },
         ],
     )
 
-    result = SummaryResponse(summary=response.content[0].text, patient_name=patient.name)
+    result = SummaryResponse(summary=response.choices[0].message.content, patient_name=patient.name)
 
     # Cache for 10 minutes (600 seconds)
     cache_set(cache_key, result.model_dump(), ttl_seconds=600)
