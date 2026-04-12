@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { CheckCircle, Clock, Stethoscope, Calendar, User, Bot, Send, Sparkles, X } from 'lucide-react'
 import { getDoctors } from '../api/doctors'
 import { getPatients } from '../api/patients'
@@ -414,7 +415,9 @@ export default function DoctorPortal() {
                               {new Date(a.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </td>
                             <td className="px-5 py-3 text-sm font-medium text-slate-800">
-                              {patientName(a.patient_id)}
+                              <Link to={`/patients/${a.patient_id}`} className="hover:text-blue-600 transition-colors">
+                                {patientName(a.patient_id)}
+                              </Link>
                             </td>
                             <td className="px-5 py-3 text-sm text-slate-500">{a.reason ?? '—'}</td>
                           </tr>
@@ -444,7 +447,11 @@ export default function DoctorPortal() {
                     <tbody className="divide-y divide-slate-50">
                       {past.map((a) => (
                         <tr key={a.id} className="hover:bg-slate-50">
-                          <td className="px-5 py-3 text-sm font-medium text-slate-700">{patientName(a.patient_id)}</td>
+                          <td className="px-5 py-3 text-sm font-medium text-slate-700">
+                            <Link to={`/patients/${a.patient_id}`} className="hover:text-blue-600 transition-colors">
+                              {patientName(a.patient_id)}
+                            </Link>
+                          </td>
                           <td className="px-5 py-3 text-sm text-slate-500">
                             {new Date(a.appointment_date).toLocaleDateString()}
                           </td>
@@ -516,7 +523,9 @@ function AppointmentRow({
         <div>
           <div className="flex items-center gap-2">
             <User size={12} className="text-slate-400" />
-            <p className="text-sm font-semibold text-slate-800">{patientName}</p>
+            <Link to={`/patients/${a.patient_id}`} className="text-sm font-semibold text-slate-800 hover:text-blue-600 transition-colors">
+              {patientName}
+            </Link>
           </div>
           <p className="text-sm text-slate-500 mt-0.5">{a.reason ?? 'Appointment'}</p>
           <div className="flex items-center gap-1 mt-1 text-slate-400 text-xs">

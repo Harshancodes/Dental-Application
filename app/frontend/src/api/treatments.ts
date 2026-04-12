@@ -1,8 +1,8 @@
 import client from './client'
 import type { Treatment } from '../types'
 
-export const getTreatments = (appointment_id?: number) =>
-  client.get<Treatment[]>('/treatments/', { params: appointment_id ? { appointment_id } : {} })
+export const getTreatments = (params?: { appointment_id?: number; patient_id?: number }) =>
+  client.get<Treatment[]>('/treatments/', { params })
 export const createTreatment = (data: Omit<Treatment, 'id' | 'created_at'>) =>
   client.post<Treatment>('/treatments/', data)
 export const updateTreatment = (id: number, data: Partial<Treatment>) =>

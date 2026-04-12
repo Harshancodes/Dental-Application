@@ -12,6 +12,7 @@ import Billing from './pages/Billing'
 import PatientPortal from './pages/PatientPortal'
 import DoctorPortal from './pages/DoctorPortal'
 import CalendarView from './pages/CalendarView'
+import PatientProfile from './pages/PatientProfile'
 
 export default function App() {
   return (
@@ -37,6 +38,7 @@ export default function App() {
             <Route path="calendar" element={<CalendarView />} />
             <Route path="patient-portal" element={<PatientPortal />} />
             <Route path="doctor-portal" element={<DoctorPortal />} />
+            <Route path="patients/:id" element={<PatientProfile />} />
           </Route>
         </Routes>
       </BrowserRouter>

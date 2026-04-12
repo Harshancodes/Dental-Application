@@ -30,12 +30,15 @@ def get_treatments(
     skip: int = 0,
     limit: int = 100,
     appointment_id: Optional[int] = Query(None),
+    patient_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
 ):
     query = db.query(Treatment)
     if appointment_id:
         query = query.filter(Treatment.appointment_id == appointment_id)
-    return query.offset(skip).limit(limit).all()
+    elif patient_id:
+        query = query.join(Appointment).filter(Appointment.patient_id == patient_id)
+    return query.order_by(Treatment.created_at.desc()).offset(skip).limit(limit).all()
 
 
 @router.get("/{treatment_id}", response_model=TreatmentResponse)
