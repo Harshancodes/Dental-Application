@@ -334,7 +334,8 @@ function BookAppointmentModal({
         patient_id: patientId,
         doctor_id: Number(doctorId),
         appointment_date: `${date}T${time}:00`,
-        reason: reason || undefined,
+        reason: reason || null,
+        notes: null,
       })
       onBooked()
       onClose()
